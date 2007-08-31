@@ -16,6 +16,7 @@ my $user = undef;
 my $pass = undef;
 
 my $get = 0;
+my $all = 0;
 my $del = 0;
 my $set = 0;
 my $replace = 0;
@@ -39,6 +40,7 @@ Parameters:
     --ip <address>      IP address
     --hostname          Hostname to set
     --replace           Replace existing DNS entry
+    --all               Retrieve all ip addresses
 EOF
     exit 1;
 }
@@ -46,11 +48,11 @@ EOF
 sub checkInput {
 
     unless (defined $user && defined $pass) {
-	return 0;
+        return 0;
     }
-
-    ($set && $delete) && return 0;
-    ($set || $delete || $get) || return 0;
+    
+    ($set && $del) && return 0;
+    ($set || $del || $get) || return 0;
 
     ( $set &&
         (
@@ -60,7 +62,6 @@ sub checkInput {
             not ($ip =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/)
         )
     ) && return 0;
-
     ( $del &&
         (
             not defined $ip || 
@@ -78,7 +79,8 @@ GetOptions (
     'replace|r!' => \$replace,
     'delete|del|d' => \$del,
     'host|hostname|name|h|n=s' => \$host,
-    'ip|i=s' => \$ip
+    'ip|i=s' => \$ip,
+    'all!' => \$all
 ) || show_help();
 
 checkInput || show_help();
@@ -96,8 +98,8 @@ sub login {
     );
     
     if ($mech->content() =~ /Bitte überprüfen Sie Ihre Logindaten!/) {
-	# login failed
-	return undef;
+        # login failed
+        return undef;
     }
     return $mech;
 }
@@ -112,6 +114,13 @@ sub getHosts {
         my $h = $3;
         $hosts{$i} = $h;
     }
+    if ($all) {
+        $mech->follow_link( url => 'rdns_1.php' );
+        my $page = $mech->content();
+        while ( $page =~ /<option value="(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})">/g ) {
+            $hosts{$1} = "";
+        }
+    }
     return \%hosts;
 }
 
@@ -119,16 +128,15 @@ sub setHost {
     my ($mech, $ip, $host) = @_;
     my $hosts = getHosts($mech);
     if (defined $hosts->{$ip}) {
-	if ($hosts->{$ip} eq $host) {
-            print STDERR "No change to address $ip necessary\n";
-	    return;
-	}
-
+        if ($hosts->{$ip} eq $host) {
+                print STDERR "No change to address $ip necessary\n";
+            return;
+        }
         if ($replace) {
             print STDERR "Address $ip already assigned, replacing existing reverse entry\n";
             deleteHost( $mech, $ip );
         } else {
-            die "Address $ip already assigned\n";
+            print STDERR "Address $ip already assigned, not replacing it!\n";
         }
     }
 
@@ -158,7 +166,22 @@ sub deleteHost {
         );
         return;
     }
-    die "Unable to remove host";
+    print STDERR "Unable to remove reverse entry $ip\n";
+}
+
+sub ip_to_n {
+    my ($ip) = @_;
+    my $i = 1;
+    my $n = 0;
+    for my $q (reverse split /\./, $ip) {
+        $n += (256**$i)*$q;
+        $i++;
+    }
+    return $n;
+}
+
+sub ip_sort {
+    ip_to_n($a) <=> ip_to_n($b);
 }
 
 my $m = login();
@@ -176,10 +199,10 @@ if ($set) {
 if ($get) {
     my %hosts = %{ getHosts( $m ) };
 
-    for my $i (keys %hosts) {
-	my $h = $hosts{$i};
-	next if (defined $host && $host ne $h);
-	next if (defined $ip && $ip ne $i);
-	print STDOUT "$i\t$h\n";
+    for my $i (sort ip_sort keys %hosts) {
+        my $h = $hosts{$i};
+        next if (defined $host && $host ne $h);
+        next if (defined $ip && $ip ne $i);
+        print STDOUT "$i\t$h\n";
     }
 }
