@@ -164,6 +164,7 @@ sub deleteHost {
                 rdns => $rdns_id
             }
         );
+        print STDERR "Removed reverse entry for address $ip\n";
         return;
     }
     print STDERR "Unable to remove reverse entry $ip\n";
