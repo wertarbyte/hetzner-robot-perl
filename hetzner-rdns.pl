@@ -22,6 +22,7 @@ my $set = 0;
 my $replace = 0;
 my $host = undef;
 my $ip = undef;
+my $batch = 0;
 
 
 sub show_help {
@@ -41,6 +42,7 @@ Parameters:
     --hostname          Hostname to set
     --replace           Replace existing DNS entry
     --all               Retrieve all ip addresses
+    --batch             Read list of ip addresses and hostnames from STDIN
 EOF
     exit 1;
 }
@@ -51,8 +53,7 @@ sub checkInput {
         return 0;
     }
     
-    ($set && $del) && return 0;
-    ($set || $del || $get) || return 0;
+    ($batch xor $set xor $del xor $get) || return 0;
 
     ( $set &&
         (
@@ -68,6 +69,8 @@ sub checkInput {
             not ($ip =~ /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/)
         )
     ) && return 0;
+
+    ( $batch && (defined $host || defined $ip) ) && return 0;
     return 1;
 }
 
@@ -80,6 +83,7 @@ GetOptions (
     'delete|del|d' => \$del,
     'host|hostname|name|h|n=s' => \$host,
     'ip|i=s' => \$ip,
+    'batch|b' => \$batch,
     'all!' => \$all
 ) || show_help();
 
@@ -104,7 +108,7 @@ sub login {
     return $mech;
 }
 
-sub getHosts {
+sub get_hosts {
     my ($mech) = @_;
     my %hosts = ();
     $mech->follow_link( url => 'rdns_2.php' );
@@ -124,17 +128,17 @@ sub getHosts {
     return \%hosts;
 }
 
-sub setHost {
+sub set_host {
     my ($mech, $ip, $host) = @_;
-    my $hosts = getHosts($mech);
+    my $hosts = get_hosts($mech);
     if (defined $hosts->{$ip}) {
         if ($hosts->{$ip} eq $host) {
-                print STDERR "No change to address $ip necessary\n";
+            print STDERR "No change to address $ip necessary, already mapped to $host\n";
             return;
         }
         if ($replace) {
             print STDERR "Address $ip already assigned, replacing existing reverse entry\n";
-            deleteHost( $mech, $ip );
+            delete_host( $mech, $ip );
         } else {
             print STDERR "Address $ip already assigned, not replacing it!\n";
         }
@@ -150,7 +154,7 @@ sub setHost {
     );
 }
 
-sub deleteHost {
+sub delete_host {
     my ($mech, $ip) = @_;
     $mech->follow_link( url => 'rdns_2.php' );
     my $page = $mech->content();
@@ -167,7 +171,7 @@ sub deleteHost {
         print STDERR "Removed reverse entry for address $ip\n";
         return;
     }
-    print STDERR "Unable to remove reverse entry $ip\n";
+    print STDERR "Unable to remove reverse entry $ip, probably none set\n";
 }
 
 sub ip_to_n {
@@ -185,20 +189,33 @@ sub ip_sort {
     ip_to_n($a) <=> ip_to_n($b);
 }
 
+sub batch_process {
+    my ($m) = @_;
+    # read STDIN
+    while (<STDIN>) {
+        my ($i, $h) = split /\s+/;
+        if (defined $h && not $h eq "") {
+            # set entry
+            set_host($m, $i, $h);
+        } else {
+            # delete entry
+            delete_host($m, $i);
+        }
+    }
+}
+
 my $m = login();
 unless (defined $m) {
     print STDERR "Invalid login data\n";
-    exit 1;
+    #exit 1;
 }
 
 if ($set) {
-    setHost( $m, $ip, $host );
+    set_host( $m, $ip, $host );
 } elsif ($del) {
-    deleteHost( $m, $ip );
-}
-
-if ($get) {
-    my %hosts = %{ getHosts( $m ) };
+    delete_host( $m, $ip );
+} elsif ($get) {
+    my %hosts = %{ get_hosts( $m ) };
 
     for my $i (sort ip_sort keys %hosts) {
         my $h = $hosts{$i};
@@ -206,4 +223,6 @@ if ($get) {
         next if (defined $ip && $ip ne $i);
         print STDOUT "$i\t$h\n";
     }
+} elsif ($batch) {
+    batch_process($m);
 }
