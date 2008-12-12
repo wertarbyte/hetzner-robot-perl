@@ -36,13 +36,15 @@ Operation mode:
     --get               Retrieve reverse DNS entries
     --set               Set a new reverse DNS entry
     --delete            Delete an existing DNS entry
+    
+    --batch             Read list of ip addresses and hostnames from STDIN
+                        and transmit all mappings to Hetzner
 
 Parameters:
     --ip <address>      IP address
     --hostname          Hostname to set
     --replace           Replace existing DNS entry
     --all               Retrieve all ip addresses
-    --batch             Read list of ip addresses and hostnames from STDIN
 EOF
     exit 1;
 }
