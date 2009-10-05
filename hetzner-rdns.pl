@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
 # hetzner-rdns.pl
-# By Stefan Tomanek <stefan@pico.ruhr.de>
-# http://stefans.datenbruch.de/rootserver/
+# By Stefan Tomanek <stefan.tomanek@wertarbyte.de>
+# http://wertarbyte.de/
 
 use WWW::Mechanize;
 use Getopt::Long;
@@ -27,7 +27,7 @@ my $batch = 0;
 
 sub show_help {
     print STDERR <<EOF;
-hetzner-rdns.pl by Stefan Tomanek <stefan\@pico.ruhr.de>
+hetzner-rdns.pl by Stefan Tomanek <stefan.tomanek@wertarbyte.de>
 
 Authentication:
     --user <login>      Hetzner Robot username
