@@ -243,7 +243,10 @@ sub batch_process {
     # read STDIN
     while (<STDIN>) {
         my ($i, $h) = split /\s+/;
-        set_host( $i, $h, $hosts );
+        if ( set_host( $i, $h, $hosts ) ) {
+            # change local cache on successful update
+            $hosts->{$i}{hostname} = $h;
+        }
     }
 }
 
