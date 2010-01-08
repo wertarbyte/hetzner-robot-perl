@@ -187,20 +187,20 @@ sub set_host {
     
     unless (defined $hosts->{$ip}) {
         print STDERR "Unable to handle address $ip\n";
-        return 1;
+        return 0;
     }
 
     if (defined $hosts->{$ip}{hostname}) {
         if ($hosts->{$ip}{hostname} eq $host) {
             print STDERR "No change to address $ip necessary, already mapped to '$host'\n";
-            return;
+            return 1;
         }
         if ($hosts->{$ip}{hostname} ne "") {
             if ($replace) {
                 print STDERR "Address $ip already assigned, replacing existing reverse entry\n";
             } else {
                 print STDERR "Address $ip already assigned, not replacing it!\n";
-                return;
+                return 0;
             }
         }
     }
@@ -212,6 +212,14 @@ sub set_host {
 
     unless ($r->is_success()) {
         die $r->status_line;
+    } else {
+        # check returned data
+        if ($r->decoded_content() =~ /<span class=\\"embedded_msgbox_error\\"/) {
+            print STDERR "Error setting reverse entry '$host' for address '$ip'!\n";
+            return 0;
+        } else {
+            return 1;
+        }
     }
 }
 
@@ -235,7 +243,7 @@ sub batch_process {
     # read STDIN
     while (<STDIN>) {
         my ($i, $h) = split /\s+/;
-        set_host( $i, $h, $hosts);
+        set_host( $i, $h, $hosts );
     }
 }
 
