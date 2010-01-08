@@ -4,13 +4,13 @@
 # By Stefan Tomanek <stefan.tomanek@wertarbyte.de>
 # http://wertarbyte.de/
 
-use WWW::Mechanize;
+use strict;
+use LWP::UserAgent;
 use Getopt::Long;
 
-
 my $prot = "https";
-my $host = "www.hetzner.de";
-my $entry = "$prot://$host/robot/";
+my $host = "robot.your-server.de";
+my $base = "$prot://$host/";
 
 my $user = undef;
 my $pass = undef;
@@ -24,10 +24,15 @@ my $host = undef;
 my $ip = undef;
 my $batch = 0;
 
+my $ua = LWP::UserAgent->new;
+$ua->cookie_jar( {} );
+push @{ $ua->requests_redirectable }, 'POST';
+$ua->env_proxy;
+
 
 sub show_help {
     print STDERR <<EOF;
-hetzner-rdns.pl by Stefan Tomanek <stefan.tomanek@wertarbyte.de>
+hetzner-rdns.pl by Stefan Tomanek <stefan.tomanek\@wertarbyte.de>
 
 Authentication:
     --user <login>      Hetzner Robot username
@@ -91,89 +96,121 @@ GetOptions (
 
 checkInput || show_help();
 
-sub login {
-    my $mech = WWW::Mechanize->new( autocheck => 1 );
-    $mech->get( $entry );
+sub start {
+    my $r = $ua->get($base);
+    die $r->status_line unless $r->is_success();
+}
 
-    $mech->submit_form(
-        form_number => 1,
-        fields => {
-            login => $user,
-            passwd => $pass
+sub login {
+    my $r = $ua->post(
+        "$base/login/check",
+        {
+            user            => $user,
+            password        => $pass
         }
     );
-    
-    if ($mech->content() =~ /Bitte überprüfen Sie Ihre Logindaten!/) {
-        # login failed
-        return undef;
+
+    if ($r->is_success()) {
+        if ($r->decoded_content =~ /Please check your login data/) {
+            return 0;
+        } else {
+            return 1
+        };
+    } else {
+        die $r->status_line;
     }
-    return $mech;
 }
 
 sub get_hosts {
-    my ($mech) = @_;
     my %hosts = ();
-    $mech->follow_link( url => 'rdns_2.php' );
-    my $page = $mech->content();
-    while ( $page =~ /<option value="(\d+)">(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})&nbsp;&nbsp;->&nbsp;&nbsp;([[:alnum:].\-]+)/g  ) {
-        my $i = $2;
-        my $h = $3;
-        $hosts{$i} = $h;
-    }
-    if ($all) {
-        $mech->follow_link( url => 'rdns_1.php' );
-        my $page = $mech->content();
-        while ( $page =~ /<option value="(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})">/g ) {
-            $hosts{$1} = "";
+    my @sid = get_server_ids();
+    for my $server_id (@sid) {
+        %hosts = (%hosts, %{ get_addresses($server_id) });
+        for my $subnet_id (get_subnet_ids($server_id)) {
+            %hosts = (%hosts, %{ get_addresses($server_id, $subnet_id) });
         }
     }
     return \%hosts;
 }
 
+sub get_addresses {
+    my ($server_id, $subnet_id) = @_;
+    my %addresses = ();
+    my $url = "$base/server/ip/id/$server_id";
+    if (defined $subnet_id) {
+        $url = "$base/server/net/id/$server_id?net_id=$subnet_id"
+    }
+    my $r = $ua->post($url);
+    if ($r->is_success()) {
+        my $d = $r->decoded_content();
+        my @addr = ($d =~ m!<strong>([0-9.]+)</strong>!g);
+        my @hosts = ($d =~ m!<div id="rdns_[0-9]+(?:_[0-9]+)?" class="rdns_input">([^<]*)<!g);
+        while (@addr) {
+            my $a = pop @addr;
+            my $h = pop @hosts;
+
+            $addresses{$a} = { server_id => $server_id, hostname => $h, subnet_id => $subnet_id };
+        }
+    }
+    return \%addresses;
+}
+
+sub get_server_ids {
+    my $r = $ua->get("$base/server");
+    if ($r->is_success()) {
+        my %id = ();
+        for ($r->decoded_content =~ m!'/server/ip/id/([0-9]+)'!g) {
+            $id{$1} = 1;
+        }
+        return sort keys %id;
+    } else {
+        die $r->status_line;
+    }
+}
+
+sub get_subnet_ids {
+    my ($server_id) = @_;
+    my $r = $ua->get("$base/server/ip/id/$server_id");
+    if ($r->is_success()) {
+        my %id = ();
+        for ($r->decoded_content =~ m!id="subnet_([0-9]+)_button"!g) {
+            $id{$1} = 1;
+        }
+        return sort keys %id;
+    } else {
+        die $r->status_line;
+    }
+}
+
 sub set_host {
-    my ($mech, $ip, $host) = @_;
-    my $hosts = get_hosts($mech);
-    if (defined $hosts->{$ip}) {
-        if ($hosts->{$ip} eq $host) {
+    my ($ip, $host) = @_;
+    
+    my $hosts = get_hosts();
+
+    unless (defined $hosts->{$ip}) {
+        print STDERR "Unable to handle address $ip\n";
+        return 1;
+    }
+
+    if (defined $hosts->{$ip}{hostname} && $hosts->{$ip}{hostname} ne "" ) {
+        if ($hosts->{$ip}{hostname} eq $host) {
             print STDERR "No change to address $ip necessary, already mapped to $host\n";
             return;
         }
         if ($replace) {
             print STDERR "Address $ip already assigned, replacing existing reverse entry\n";
-            delete_host( $mech, $ip );
         } else {
             print STDERR "Address $ip already assigned, not replacing it!\n";
+            return;
         }
     }
 
-    $mech->follow_link( url => 'rdns_1.php' );
-    $mech->submit_form(
-        form_number => 1,
-        fields => {
-            ip => $ip,
-            name => $host
-        }
-    );
-}
+    my $sid = $hosts->{$ip}{server_id};
+    my $r = $ua->get("$base/server/reversedns/id/$sid?value=$host&ip=$ip");
 
-sub delete_host {
-    my ($mech, $ip) = @_;
-    $mech->follow_link( url => 'rdns_2.php' );
-    my $page = $mech->content();
-    while ( $page =~ /<option value="(\d+)">(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})&/g ) {
-        my ($rdns_id, $address) = ($1, $2);
-        next unless $address eq $ip;
-
-        $mech->submit_form(
-            form_number => 1,
-            fields => {
-                rdns => $rdns_id
-            }
-        );
-        print STDERR "Removed reverse entry for address $ip\n";
-        return;
+    unless ($r->is_success()) {
+        die $r->status_line;
     }
-    print STDERR "Unable to remove reverse entry $ip, probably none set\n";
 }
 
 sub ip_to_n {
@@ -192,39 +229,32 @@ sub ip_sort {
 }
 
 sub batch_process {
-    my ($m) = @_;
     # read STDIN
     while (<STDIN>) {
         my ($i, $h) = split /\s+/;
-        if (defined $h && not $h eq "") {
-            # set entry
-            set_host($m, $i, $h);
-        } else {
-            # delete entry
-            delete_host($m, $i);
-        }
+        set_host( $i, $h);
     }
 }
 
-my $m = login();
-unless (defined $m) {
+start();
+unless (login()) {
     print STDERR "Invalid login data\n";
-    #exit 1;
+    exit 1;
 }
 
 if ($set) {
-    set_host( $m, $ip, $host );
+    set_host( $ip, $host );
 } elsif ($del) {
-    delete_host( $m, $ip );
+    set_host( $ip, '' );
 } elsif ($get) {
-    my %hosts = %{ get_hosts( $m ) };
+    my %hosts = %{ get_hosts() };
 
     for my $i (sort ip_sort keys %hosts) {
-        my $h = $hosts{$i};
-        next if (defined $host && $host ne $h);
-        next if (defined $ip && $ip ne $i);
+        my $h = $hosts{$i}{hostname};
+        next if (defined $ip && $i ne $ip);
+        next if ($h eq "" && ! $all);
         print STDOUT "$i\t$h\n";
     }
 } elsif ($batch) {
-    batch_process($m);
+    batch_process();
 }
