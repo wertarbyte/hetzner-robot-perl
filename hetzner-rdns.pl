@@ -183,27 +183,29 @@ sub get_subnet_ids {
 }
 
 sub set_host {
-    my ($ip, $host) = @_;
+    my ($ip, $host, $hosts) = @_;
     
-    my $hosts = get_hosts();
-
     unless (defined $hosts->{$ip}) {
         print STDERR "Unable to handle address $ip\n";
         return 1;
     }
 
-    if (defined $hosts->{$ip}{hostname} && $hosts->{$ip}{hostname} ne "" ) {
+    if (defined $hosts->{$ip}{hostname}) {
         if ($hosts->{$ip}{hostname} eq $host) {
-            print STDERR "No change to address $ip necessary, already mapped to $host\n";
+            print STDERR "No change to address $ip necessary, already mapped to '$host'\n";
             return;
         }
-        if ($replace) {
-            print STDERR "Address $ip already assigned, replacing existing reverse entry\n";
-        } else {
-            print STDERR "Address $ip already assigned, not replacing it!\n";
-            return;
+        if ($hosts->{$ip}{hostname} ne "") {
+            if ($replace) {
+                print STDERR "Address $ip already assigned, replacing existing reverse entry\n";
+            } else {
+                print STDERR "Address $ip already assigned, not replacing it!\n";
+                return;
+            }
         }
     }
+    
+    print STDERR "Changing $ip to $host (prior: ".$hosts->{$ip}{hostname}.")\n";
 
     my $sid = $hosts->{$ip}{server_id};
     my $r = $ua->get("$base/server/reversedns/id/$sid?value=$host&ip=$ip");
@@ -229,10 +231,11 @@ sub ip_sort {
 }
 
 sub batch_process {
+    my $hosts = get_hosts();
     # read STDIN
     while (<STDIN>) {
         my ($i, $h) = split /\s+/;
-        set_host( $i, $h);
+        set_host( $i, $h, $hosts);
     }
 }
 
@@ -243,9 +246,9 @@ unless (login()) {
 }
 
 if ($set) {
-    set_host( $ip, $host );
+    set_host( $ip, $host, get_hosts() );
 } elsif ($del) {
-    set_host( $ip, '' );
+    set_host( $ip, '', get_hosts() );
 } elsif ($get) {
     my %hosts = %{ get_hosts() };
 
