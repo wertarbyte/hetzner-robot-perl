@@ -144,7 +144,7 @@ sub get_addresses {
     if ($r->is_success()) {
         my $d = $r->decoded_content();
         my @addr = ($d =~ m!<strong>([0-9.]+)</strong>!g);
-        my @hosts = ($d =~ m!<div id="rdns_[0-9]+(?:_[0-9]+)?" class="rdns_input">([^<]*)<!g);
+        my @hosts = ($d =~ m!<div id="rdns_[0-9]+(?:_[0-9]+)?" ?class="rdns_input">([^<]*)<!g);
         while (@addr) {
             my $a = pop @addr;
             my $h = pop @hosts;
