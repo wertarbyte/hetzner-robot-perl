@@ -159,9 +159,8 @@ sub get_server_ids {
     my $r = $ua->get("$base/server");
     if ($r->is_success()) {
         my %id = ();
- 	my $content = $r->decoded_content;
-         while ($content =~ /'\/server\/ip\/id\/([0-9]+)'/g) {
-
+        my $content = $r->decoded_content;
+        while ($content =~ /'\/server\/ip\/id\/([0-9]+)'/g) {
             $id{$1} = 1;
         }
         return sort keys %id;
@@ -175,9 +174,8 @@ sub get_subnet_ids {
     my $r = $ua->get("$base/server/ip/id/$server_id");
     if ($r->is_success()) {
         my %id = ();
- 	my $content = $r->decoded_content;
- 	while ($content =~ m!'/server/net/id/$server_id\?net_id=([0-9]+)'!g){
-
+        my $content = $r->decoded_content;
+        while ($content =~ m!'/server/net/id/$server_id\?net_id=([0-9]+)'!g){
             $id{$1} = 1;
         }
         return sort keys %id;
