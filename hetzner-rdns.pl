@@ -224,7 +224,7 @@ sub set_host {
     print STDERR "Changing $ip to $host (prior: ".$hosts->{$ip}{hostname}.")\n";
 
     my $sid = $hosts->{$ip}{server_id};
-    my $r = $ua->post("$base/server/reversedns", id=>$sid, value=>$host, ip=>$ip);
+    my $r = $ua->get("$base/server/reversedns/id/$sid?value=$host&ip=$ip");
 
     unless ($r->is_success()) {
         die $r->status_line;
