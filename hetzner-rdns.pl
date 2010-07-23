@@ -23,6 +23,8 @@ my $replace = 0;
 my $host = undef;
 my $ip = undef;
 my $batch = 0;
+my $v4 = 1;
+my $v6 = 0;
 
 my $ua = LWP::UserAgent->new;
 $ua->cookie_jar( {} );
@@ -50,8 +52,18 @@ Parameters:
     --hostname          Hostname to set
     --replace           Replace existing DNS entry
     --all               Retrieve all ip addresses
+    --ipv4 | -4         Handle IPv4 addresses (default)
+    --ipv6 | -6         Handle IPv6 addresses as well
 EOF
     exit 1;
+}
+
+sub valid_v4_address {
+    $_[0] =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/;
+}
+
+sub valid_v6_address {
+    $_[0] =~ /^[0-9a-f:]+$/i;
 }
 
 sub checkInput {
@@ -67,13 +79,13 @@ sub checkInput {
             !defined $host ||
             !defined $ip ||
             $host !~ /^[[:alnum:].]+$/ ||
-            $ip !~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/
+            !( valid_v4_address($ip) || ($v6 && valid_v6_address($ip)))
         )
     ) && return 0;
     ( $del &&
         (
             !defined $ip ||
-            $ip !~ /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/
+            !( valid_v4_address($ip) || ($v6 && valid_v6_address($ip)))
         )
     ) && return 0;
 
@@ -91,7 +103,9 @@ GetOptions (
     'host|hostname|name|h|n=s' => \$host,
     'ip|i=s' => \$ip,
     'batch|b' => \$batch,
-    'all!' => \$all
+    'all!' => \$all,
+    'ipv4|4!' => \$v4,
+    'ipv6|6!' => \$v6
 ) || show_help();
 
 checkInput || show_help();
@@ -143,7 +157,7 @@ sub get_addresses {
     my $r = $ua->post($url);
     if ($r->is_success()) {
         my $d = $r->decoded_content();
-        my @addr = ($d =~ m!<strong>([0-9.]+)</strong>!g);
+        my @addr = ($d =~ m!<strong>([a-f:0-9.]+)</strong>!g);
         my @hosts = ($d =~ m!<div id="rdns_[0-9]+(?:_[0-9]+)?" ?class="rdns_input">([^<]*)<!g);
         while (@addr) {
             my $a = pop @addr;
@@ -266,6 +280,8 @@ if ($set) {
     my %hosts = %{ get_hosts() };
 
     for my $i (sort ip_sort keys %hosts) {
+        next if (!$v4 && valid_v4_address($i));
+        next if (!$v6 && valid_v6_address($i));
         my $h = $hosts{$i}{hostname};
         next if (defined $ip && $i ne $ip);
         next if ($h eq "" && ! $all);
