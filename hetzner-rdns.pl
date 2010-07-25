@@ -66,6 +66,10 @@ sub valid_v6_address {
     $_[0] =~ /^[0-9a-f:]+$/i;
 }
 
+sub valid_hostname {
+    $_[0] =~ /^[[:alnum:].-]+$/i;
+}
+
 sub checkInput {
 
     unless (defined $user && defined $pass) {
@@ -78,7 +82,7 @@ sub checkInput {
         (
             !defined $host ||
             !defined $ip ||
-            $host !~ /^[[:alnum:].]+$/ ||
+            ! valid_hostname($host) ||
             !( valid_v4_address($ip) || ($v6 && valid_v6_address($ip)))
         )
     ) && return 0;
