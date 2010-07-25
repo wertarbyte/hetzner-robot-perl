@@ -7,9 +7,13 @@
 use strict;
 use LWP::UserAgent;
 use Getopt::Long;
+use Net::IP;
 
 my $robot_host = "robot.your-server.de";
 my $robot_base = "https://$robot_host/";
+
+# cache the robot data
+my $robot_data = undef;
 
 my $user = undef;
 my $pass = undef;
@@ -138,16 +142,38 @@ sub login {
     }
 }
 
-sub get_hosts {
-    my %hosts = ();
-    my @sid = get_server_ids();
-    for my $server_id (@sid) {
-        %hosts = (%hosts, %{ get_addresses($server_id) });
-        for my $subnet_id (get_subnet_ids($server_id)) {
-            %hosts = (%hosts, %{ get_addresses($server_id, $subnet_id) });
-        }
+sub get_robot_data {
+    my %data = ();
+    if (defined $robot_data) {
+        return $robot_data;
     }
-    return \%hosts;
+
+    # fetch robot data
+    my @sid = get_server_ids();
+    # addresses and reverse entries
+    my %hosts = ();
+    # networks associated with the servers
+    my %net = ();
+    for my $server_id (@sid) {
+        # gather host addresses for each host
+        %hosts = (%hosts, %{ get_addresses($server_id) });
+        # subnets assigned to the host
+        my %snets = %{ get_subnets($server_id) };
+        # existing reverse entries
+        for my $net_id (keys %snets) {
+            %hosts = (%hosts, %{ get_addresses($server_id, $net_id) });
+        }
+        %net = (%net, %snets);
+    }
+    $data{host} = \%hosts;
+    $data{net} = \%net;
+    $robot_data = \%data;
+    return $robot_data;
+}
+
+sub get_hosts {
+    my $data = get_robot_data();
+    return $data->{host};
 }
 
 sub get_addresses {
@@ -186,25 +212,59 @@ sub get_server_ids {
     }
 }
 
-sub get_subnet_ids {
+sub get_subnets {
     my ($server_id) = @_;
     my $r = $ua->get("$robot_base/server/ip/id/$server_id");
     if ($r->is_success()) {
         my %id = ();
         my $content = $r->decoded_content;
-        while ($content =~ m!'/server/net/id/$server_id\?net_id=([0-9]+)'!g){
-            $id{$1} = 1;
+        
+        my @cidr = ($content =~ m!(?:^|[[:space:]]*)([a-f0-9.:]+ / [0-9]{1,3}) *</strong>!ig);
+        my @ids = ($content =~ m!'/server/net/id/$server_id\?net_id=([0-9]+)'!g);
+        while (@cidr) {
+            my $c = pop @cidr;
+            my $i = pop @ids;
+
+            my ($prefix, $mask) = ($c =~ m!^([^ /]+) */ *([0-9]+)!);
+            $id{$i} = { address => $prefix, mask => $mask, server_id => $server_id, subnet_id => $i };
         }
-        return sort keys %id;
+        return \%id;
     } else {
         die $r->status_line;
     }
 }
 
+sub find_server_id {
+    my ($addr) = @_;
+    my $data = get_robot_data();
+    # for addresses directly assigned to the server, we search the address database
+    if (defined $data->{host}{$addr}{server_id}) {
+        return $data->{host}{$addr}{server_id};
+    }
+    # for subnets, we might have to compare the netmasks
+    my $subnet_id = find_subnet_id($addr);
+    return $data->{net}{$subnet_id}{server_id};
+}
+
+sub find_subnet_id {
+    my ($addr) = @_;
+    my $data = get_robot_data();
+    my $ip = new Net::IP($addr);
+    for my $id (keys %{ $data->{net} }) {
+        my $net = new Net::IP($data->{net}{$id}{address}."/".$data->{net}{$id}{mask});
+        if ($net->overlaps( $ip ) == $IP_B_IN_A_OVERLAP) {
+            return $id;
+        }
+    }
+    return undef;
+}
+
 sub set_host {
-    my ($ip, $host, $hosts) = @_;
+    my ($ip, $host, $preserve_cache) = @_;
+
+    my $hosts = get_robot_data()->{host};
     
-    unless (defined $hosts->{$ip}) {
+    if (valid_v4_address($ip) && !defined $hosts->{$ip}) {
         print STDERR "Unable to handle address $ip\n";
         return 0;
     }
@@ -224,10 +284,15 @@ sub set_host {
         }
     }
     
+    my $sid = find_server_id($ip);
     print STDERR "Changing $ip to $host (prior: ".$hosts->{$ip}{hostname}.")\n";
 
-    my $sid = $hosts->{$ip}{server_id};
     my $r = $ua->get("$robot_base/server/reversedns/id/$sid?value=$host&ip=$ip");
+    
+    unless ($preserve_cache) {
+        # invalidate cached data
+        $robot_data = undef;
+    }
 
     unless ($r->is_success()) {
         die $r->status_line;
@@ -262,7 +327,7 @@ sub batch_process {
     # read STDIN
     while (<STDIN>) {
         my ($i, $h) = split /\s+/;
-        if ( set_host( $i, $h, $hosts ) ) {
+        if ( set_host( $i, $h, 1) ) {
             # change local cache on successful update
             $hosts->{$i}{hostname} = $h;
         }
@@ -276,9 +341,9 @@ unless (login()) {
 }
 
 if ($set) {
-    set_host( $ip, $host, get_hosts() );
+    set_host( $ip, $host);
 } elsif ($del) {
-    set_host( $ip, '', get_hosts() );
+    set_host( $ip, '');
 } elsif ($get) {
     my %hosts = %{ get_hosts() };
 
