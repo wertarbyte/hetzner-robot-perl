@@ -62,11 +62,11 @@ EOF
 }
 
 sub valid_v4_address {
-    $_[0] =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/;
+    Net::IP::ip_is_ipv4($_[0]);
 }
 
 sub valid_v6_address {
-    $_[0] =~ /^[0-9a-f:]+$/i;
+    Net::IP::ip_is_ipv6($_[0]);
 }
 
 sub valid_hostname {
@@ -309,13 +309,7 @@ sub set_host {
 
 sub ip_to_n {
     my ($ip) = @_;
-    my $i = 1;
-    my $n = 0;
-    for my $q (reverse split /\./, $ip) {
-        $n += (256**$i)*$q;
-        $i++;
-    }
-    return $n;
+    return new Net::IP($ip)->intip();
 }
 
 sub ip_sort {
