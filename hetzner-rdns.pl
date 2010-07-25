@@ -8,9 +8,8 @@ use strict;
 use LWP::UserAgent;
 use Getopt::Long;
 
-my $prot = "https";
-my $host = "robot.your-server.de";
-my $base = "$prot://$host/";
+my $robot_host = "robot.your-server.de";
+my $robot_base = "https://$robot_host/";
 
 my $user = undef;
 my $pass = undef;
@@ -115,13 +114,13 @@ GetOptions (
 checkInput || show_help();
 
 sub start {
-    my $r = $ua->get($base);
+    my $r = $ua->get($robot_base);
     die $r->status_line unless $r->is_success();
 }
 
 sub login {
     my $r = $ua->post(
-        "$base/login/check",
+        "$robot_base/login/check",
         {
             user            => $user,
             password        => $pass
@@ -154,9 +153,9 @@ sub get_hosts {
 sub get_addresses {
     my ($server_id, $subnet_id) = @_;
     my %addresses = ();
-    my $url = "$base/server/ip/id/$server_id";
+    my $url = "$robot_base/server/ip/id/$server_id";
     if (defined $subnet_id) {
-        $url = "$base/server/net/id/$server_id?net_id=$subnet_id"
+        $url = "$robot_base/server/net/id/$server_id?net_id=$subnet_id"
     }
     my $r = $ua->post($url);
     if ($r->is_success()) {
@@ -174,7 +173,7 @@ sub get_addresses {
 }
 
 sub get_server_ids {
-    my $r = $ua->get("$base/server");
+    my $r = $ua->get("$robot_base/server");
     if ($r->is_success()) {
         my %id = ();
         my $content = $r->decoded_content;
@@ -189,7 +188,7 @@ sub get_server_ids {
 
 sub get_subnet_ids {
     my ($server_id) = @_;
-    my $r = $ua->get("$base/server/ip/id/$server_id");
+    my $r = $ua->get("$robot_base/server/ip/id/$server_id");
     if ($r->is_success()) {
         my %id = ();
         my $content = $r->decoded_content;
@@ -228,7 +227,7 @@ sub set_host {
     print STDERR "Changing $ip to $host (prior: ".$hosts->{$ip}{hostname}.")\n";
 
     my $sid = $hosts->{$ip}{server_id};
-    my $r = $ua->get("$base/server/reversedns/id/$sid?value=$host&ip=$ip");
+    my $r = $ua->get("$robot_base/server/reversedns/id/$sid?value=$host&ip=$ip");
 
     unless ($r->is_success()) {
         die $r->status_line;
