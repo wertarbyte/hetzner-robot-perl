@@ -97,6 +97,11 @@ sub checkInput {
     ) && return 0;
 
     ( $batch && (defined $host || defined $ip) ) && return 0;
+
+    # make --del imply --replace
+    if ($del) {
+        $replace = 1;
+    }
     return 1;
 }
 
