@@ -61,10 +61,42 @@ sub del {
 }
 1;
 
+package Hetzner::Robot::Rescue;
+
+sub new {
+    my ($class, $robot, $server) = @_;
+    my $self = { robot => $robot, server => $server };
+    bless $self, $class;
+}
+
+sub status {
+    my ($self) = @_;
+    my $bot = $self->{robot};
+    return $bot->req("GET", "/boot/".$self->{server});
+}
+
+sub active {
+    return ( $_[0]->status()->{boot}{rescue}{active} ? 1 : 0 );
+}
+
+sub password {
+    return $_[0]->status()->{boot}{rescue}{password};
+}
+
+sub enable {
+    my ($self, $os, $arch) = @_;
+    my $bot = $self->{robot};
+    return $bot->req("POST", "/boot/".$self->{server}."/rescue", {os => $os, arch => $arch});
+}
+
+sub disable {
+    my ($self, $os, $arch) = @_;
+    my $bot = $self->{robot};
+    return $bot->req("DELETE", "/boot/".$self->{server}."/rescue");
+}
+
+1;
+
 package Hetzner::Main;
-my $bot = new Hetzner::Robot("user","pass");
-my $addr = new Hetzner::Robot::RDNS($bot, "1.2.3.4");
-
-print $addr->ptr, "\n";
-
+my $bot = new Hetzner::Robot("", "");
 1;
