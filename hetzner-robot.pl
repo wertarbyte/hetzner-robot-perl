@@ -1,4 +1,11 @@
 #!/usr/bin/perl
+#
+# Perl interface for the webservice interface
+# provided by Hetzner
+#
+# by Stefan Tomanek <stefan.tomanek@wertarbyte.de>
+#
+
 use strict;
 
 package Hetzner::Robot;
