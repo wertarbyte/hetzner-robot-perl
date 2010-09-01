@@ -20,6 +20,7 @@ sub new {
     my ($class, $user, $password) = @_;
     my $self = { user => $user, pass => $password };
     $self->{ua} = new LWP::UserAgent();
+    $self->{ua}->env_proxy;
     bless $self, $class;
 }
 sub req {
