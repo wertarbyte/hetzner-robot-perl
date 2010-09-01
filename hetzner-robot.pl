@@ -10,8 +10,10 @@ use strict;
 
 package Hetzner::Robot;
 use LWP::UserAgent;
-use HTTP::Request::Common;
 use JSON;
+use HTTP::Request;
+use URI::Escape;
+
 our $BASEURL = "https://robot-ws.your-server.de";
 
 sub new {
@@ -22,14 +24,13 @@ sub new {
 }
 sub req {
     my ($self, $type, $url, $data) = @_;
-    my $req;
-    {
-        no strict 'refs';
-        my @params = ($BASEURL.$url);
-        push @params, $data if $data;
-        $req = &{"HTTP::Request::Common::".$type}(@params);
-    }
+    my $req = new HTTP::Request($type => $BASEURL.$url);
     $req->authorization_basic($self->{user}, $self->{pass});
+    if ($data) {
+        my @token = map( { uri_escape($_)."=".uri_escape($data->{$_}) } keys %$data );
+        $req->content_type('application/x-www-form-urlencoded');
+        $req->content( join("&", @token) );
+    }
     my $res = $self->{ua}->request($req);
     if ($res->is_success) {
         return from_json($res->decoded_content);
