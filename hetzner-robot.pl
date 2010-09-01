@@ -104,7 +104,7 @@ sub enable {
 }
 
 sub disable {
-    my ($self, $os, $arch) = @_;
+    my ($self) = @_;
     return $self->req("DELETE", "/boot/".$self->{key}."/rescue");
 }
 1;
