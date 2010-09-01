@@ -161,6 +161,10 @@ sub process {
         }
         print $rdns->addr, "\t", $rdns->ptr, "\n";
     }
+    if ($del) {
+        print STDERR "Removing RDNS entry for $addr...\n";
+        $rdns->del;
+    }
 }
 
 if ($batch) {
