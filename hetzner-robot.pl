@@ -45,6 +45,10 @@ sub new {
     my $self = { robot => $robot, key => $key };
     bless $self, $class;
 }
+sub req {
+    my ($self, @params) = @_;
+    $self->{robot}->req(@params);
+}
 1;
 
 package Hetzner::Robot::RDNS;
@@ -57,18 +61,16 @@ sub addr {
 
 sub ptr {
     my ($self, $val) = @_;
-    my $bot = $self->{robot};
     if (defined $val) {
-        return $bot->req("POST", "/rdns/".$self->{key}, { ptr => $val })->{rdns}{ptr};
+        return $self->req("POST", "/rdns/".$self->{key}, { ptr => $val })->{rdns}{ptr};
     } else {
-        return $bot->req("GET", "/rdns/".$self->{key})->{rdns}{ptr};
+        return $self->req("GET", "/rdns/".$self->{key})->{rdns}{ptr};
     }
 }
 
 sub del {
     my ($self) = @_;
-    my $bot = $self->{robot};
-    return $bot->req("DELETE", "/rdns/".$self->{key});
+    return $self->req("DELETE", "/rdns/".$self->{key});
 }
 1;
 
@@ -77,8 +79,7 @@ use base "Hetzner::Robot::Item";
 
 sub status {
     my ($self) = @_;
-    my $bot = $self->{robot};
-    return $bot->req("GET", "/boot/".$self->{key});
+    return $self->req("GET", "/boot/".$self->{key});
 }
 
 sub active {
@@ -99,13 +100,11 @@ sub available_arch {
 
 sub enable {
     my ($self, $os, $arch) = @_;
-    my $bot = $self->{robot};
-    return $bot->req("POST", "/boot/".$self->{key}."/rescue", {os => $os, arch => $arch});
+    return $self->req("POST", "/boot/".$self->{key}."/rescue", {os => $os, arch => $arch});
 }
 
 sub disable {
     my ($self, $os, $arch) = @_;
-    my $bot = $self->{robot};
-    return $bot->req("DELETE", "/boot/".$self->{key}."/rescue");
+    return $self->req("DELETE", "/boot/".$self->{key}."/rescue");
 }
 1;
