@@ -33,7 +33,11 @@ sub req {
     }
     my $res = $self->{ua}->request($req);
     if ($res->is_success) {
-        return from_json($res->decoded_content);
+        if ($res->decoded_content) {
+            return from_json($res->decoded_content);
+        } else {
+            return 1;
+        }
     } else {
         die $res->code.": ".$res->message."\n";
         return undef;
