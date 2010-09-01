@@ -82,6 +82,14 @@ sub password {
     return $_[0]->status()->{boot}{rescue}{password};
 }
 
+sub available_os {
+    return @{ $_[0]->status()->{boot}{rescue}{os} };
+}
+
+sub available_arch {
+    return @{ $_[0]->status()->{boot}{rescue}{arch} };
+}
+
 sub enable {
     my ($self, $os, $arch) = @_;
     my $bot = $self->{robot};
