@@ -25,7 +25,9 @@ sub req {
     my $req;
     {
         no strict 'refs';
-        $req = &{"HTTP::Request::Common::".$type}($BASEURL.$url, $data);
+        my @params = ($BASEURL.$url);
+        push @params, $data if $data;
+        $req = &{"HTTP::Request::Common::".$type}(@params);
     }
     $req->authorization_basic($self->{user}, $self->{pass});
     my $res = $self->{ua}->request($req);
