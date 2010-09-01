@@ -108,3 +108,46 @@ sub disable {
     return $self->req("DELETE", "/boot/".$self->{key}."/rescue");
 }
 1;
+
+##################################
+
+package Hetzner::Robot::main;
+use Getopt::Long;
+
+my $user = undef;
+my $pass = undef;
+
+my ($get, $set, $del);
+my ($addr, $name);
+
+sub abort {
+    my ($msg) = @_;
+    print STDERR $msg,"\n" if $msg;
+    exit 1;
+}
+
+GetOptions (
+    'username|user|u=s' => \$user,
+    'password|pass|p=s' => \$pass,
+    'get|g' => \$get,
+    'set|s' => \$set,
+    'delete|del|d' => \$del,
+    'hostname|name|n=s' => \$name,
+    'address|addr|a=s' => \$addr
+) || abort;
+# check command line
+abort "No user credentials specified!" unless (defined $user && defined $pass);
+abort "No operation specified!" unless ($get ^ $set ^ $del);
+abort "No address specified!" if (($get||$set||$del) && !defined $addr);
+abort "No hostname specified!" if ($set && !defined $name);
+
+my $robot = new Hetzner::Robot($user, $pass);
+my $rdns = new Hetzner::Robot::RDNS($robot, $addr);
+if ($get || $set) {
+    if ($set) {
+        $rdns->ptr($name);
+    }
+    print $rdns->addr, "\t", $rdns->ptr, "\n";
+}
+
+1;
