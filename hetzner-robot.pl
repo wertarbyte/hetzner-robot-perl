@@ -31,48 +31,47 @@ sub req {
 }
 1;
 
-package Hetzner::Robot::RDNS;
+package Hetzner::Robot::Item;
 
 sub new {
-    my ($class, $robot, $addr) = @_;
-    my $self = { robot => $robot, addr => $addr };
+    my ($class, $robot, $key) = @_;
+    my $self = { robot => $robot, key => $key };
     bless $self, $class;
 }
+1;
+
+package Hetzner::Robot::RDNS;
+use base "Hetzner::Robot::Item";
 
 sub addr {
     my ($self) = @_;
-    return $self->{addr};
+    return $self->{key};
 }
 
 sub ptr {
     my ($self, $val) = @_;
     my $bot = $self->{robot};
     if (defined $val) {
-        return $bot->req("POST", "/rdns/".$self->{addr}, { ptr => $val })->{rdns}{ptr};
+        return $bot->req("POST", "/rdns/".$self->{key}, { ptr => $val })->{rdns}{ptr};
     } else {
-        return $bot->req("GET", "/rdns/".$self->{addr})->{rdns}{ptr};
+        return $bot->req("GET", "/rdns/".$self->{key})->{rdns}{ptr};
     }
 }
 
 sub del {
     my ($self) = @_;
     my $bot = $self->{robot};
-    return $bot->req("DELETE", "/rdns/".$self->{addr});
+    return $bot->req("DELETE", "/rdns/".$self->{key});
 }
 1;
 
 package Hetzner::Robot::Rescue;
-
-sub new {
-    my ($class, $robot, $server) = @_;
-    my $self = { robot => $robot, server => $server };
-    bless $self, $class;
-}
+use base "Hetzner::Robot::Item";
 
 sub status {
     my ($self) = @_;
     my $bot = $self->{robot};
-    return $bot->req("GET", "/boot/".$self->{server});
+    return $bot->req("GET", "/boot/".$self->{key});
 }
 
 sub active {
@@ -86,17 +85,12 @@ sub password {
 sub enable {
     my ($self, $os, $arch) = @_;
     my $bot = $self->{robot};
-    return $bot->req("POST", "/boot/".$self->{server}."/rescue", {os => $os, arch => $arch});
+    return $bot->req("POST", "/boot/".$self->{key}."/rescue", {os => $os, arch => $arch});
 }
 
 sub disable {
     my ($self, $os, $arch) = @_;
     my $bot = $self->{robot};
-    return $bot->req("DELETE", "/boot/".$self->{server}."/rescue");
+    return $bot->req("DELETE", "/boot/".$self->{key}."/rescue");
 }
-
-1;
-
-package Hetzner::Main;
-my $bot = new Hetzner::Robot("", "");
 1;
