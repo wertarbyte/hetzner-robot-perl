@@ -148,7 +148,7 @@ GetOptions (
 ) || abort;
 # check command line
 abort "No user credentials specified!" unless (defined $user && defined $pass);
-abort "No operation specified!" unless ($get ^ $set ^ $del);
+abort "No operation specified!" unless ($get ^ $set ^ $del ^ $batch);
 unless ($batch) {
     abort "No address specified!" if (($get||$set||$del) && !defined $addr);
     abort "No hostname specified!" if ($set && !defined $name);
@@ -178,9 +178,18 @@ if ($batch) {
         s/[[:space:]]*#.*$//;
         next if (/^$/);
         my ($addr, $name) = split(/[[:space:]]+/);
-        process($addr, $name);
+        my $i = new Hetzner::Robot::RDNS($robot, $addr);
+        if ($name ne "") {
+            print STDERR "Setting RDNS entry for $addr to $name...\n";
+            $i->ptr($name);
+        } else {
+            print STDERR "Removing RDNS entry for $addr...\n";
+            $i->del;
+        }
+        print $i->addr, "\t", $i->ptr, "\n";
     }
 } else {
+    # handle a single change
     process($addr, $name);
 }
 
