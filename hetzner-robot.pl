@@ -122,6 +122,8 @@ my $pass = undef;
 my ($get, $set, $del);
 my ($addr, $name);
 
+my $batch = 0;
+
 sub abort {
     my ($msg) = @_;
     print STDERR $msg,"\n" if $msg;
@@ -135,21 +137,41 @@ GetOptions (
     'set|s' => \$set,
     'delete|del|d' => \$del,
     'hostname|name|n=s' => \$name,
-    'address|addr|a=s' => \$addr
+    'address|addr|a=s' => \$addr,
+    'batch' => \$batch
 ) || abort;
 # check command line
 abort "No user credentials specified!" unless (defined $user && defined $pass);
 abort "No operation specified!" unless ($get ^ $set ^ $del);
-abort "No address specified!" if (($get||$set||$del) && !defined $addr);
-abort "No hostname specified!" if ($set && !defined $name);
+unless ($batch) {
+    abort "No address specified!" if (($get||$set||$del) && !defined $addr);
+    abort "No hostname specified!" if ($set && !defined $name);
+}
 
 my $robot = new Hetzner::Robot($user, $pass);
-my $rdns = new Hetzner::Robot::RDNS($robot, $addr);
-if ($get || $set) {
-    if ($set) {
-        $rdns->ptr($name);
+
+sub process {
+    my ($addr, $name) = @_;
+    my $rdns = new Hetzner::Robot::RDNS($robot, $addr);
+
+    if ($get || $set) {
+        if ($set) {
+            print STDERR "Setting $addr to $name...\n";
+            $rdns->ptr($name);
+        }
+        print $rdns->addr, "\t", $rdns->ptr, "\n";
     }
-    print $rdns->addr, "\t", $rdns->ptr, "\n";
+}
+
+if ($batch) {
+    while (<STDIN>) {
+        s/[[:space:]]*#.*$//;
+        next if (/^$/);
+        my ($addr, $name) = split(/[[:space:]]+/);
+        process($addr, $name);
+    }
+} else {
+    process($addr, $name);
 }
 
 1;
