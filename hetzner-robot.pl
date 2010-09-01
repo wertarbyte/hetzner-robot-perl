@@ -53,6 +53,12 @@ sub ptr {
         return $bot->req("GET", "/rdns/".$self->{addr})->{rdns}{ptr};
     }
 }
+
+sub del {
+    my ($self) = @_;
+    my $bot = $self->{robot};
+    return $bot->req("DELETE", "/rdns/".$self->{addr});
+}
 1;
 
 package Hetzner::Main;
