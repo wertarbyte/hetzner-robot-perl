@@ -119,78 +119,86 @@ sub disable {
 
 ##################################
 
-package Hetzner::Robot::main;
+package Hetzner::Robot::RDNS::main;
 use Getopt::Long;
 
-my $user = undef;
-my $pass = undef;
+sub run {
+    my $user = undef;
+    my $pass = undef;
 
-my ($get, $set, $del);
-my ($addr, $name);
+    my ($get, $set, $del);
+    my ($addr, $name);
 
-my $batch = 0;
+    my $batch = 0;
 
-sub abort {
-    my ($msg) = @_;
-    print STDERR $msg,"\n" if $msg;
-    exit 1;
-}
+    sub abort {
+        my ($msg) = @_;
+        print STDERR $msg,"\n" if $msg;
+        exit 1;
+    }
 
-GetOptions (
-    'username|user|u=s' => \$user,
-    'password|pass|p=s' => \$pass,
-    'get|g' => \$get,
-    'set|s' => \$set,
-    'delete|del|d' => \$del,
-    'hostname|name|n=s' => \$name,
-    'address|addr|a=s' => \$addr,
-    'batch' => \$batch
-) || abort;
+    GetOptions (
+        'username|user|u=s' => \$user,
+        'password|pass|p=s' => \$pass,
+        'get|g' => \$get,
+        'set|s' => \$set,
+        'delete|del|d' => \$del,
+        'hostname|name|n=s' => \$name,
+        'address|addr|a=s' => \$addr,
+        'batch' => \$batch
+    ) || abort;
 # check command line
-abort "No user credentials specified!" unless (defined $user && defined $pass);
-abort "No operation specified!" unless ($get ^ $set ^ $del ^ $batch);
-unless ($batch) {
-    abort "No address specified!" if (($get||$set||$del) && !defined $addr);
-    abort "No hostname specified!" if ($set && !defined $name);
-}
+    abort "No user credentials specified!" unless (defined $user && defined $pass);
+    abort "No operation specified!" unless ($get ^ $set ^ $del ^ $batch);
+    unless ($batch) {
+        abort "No address specified!" if (($get||$set||$del) && !defined $addr);
+        abort "No hostname specified!" if ($set && !defined $name);
+    }
 
-my $robot = new Hetzner::Robot($user, $pass);
+    my $robot = new Hetzner::Robot($user, $pass);
 
-sub process {
-    my ($addr, $name) = @_;
-    my $rdns = new Hetzner::Robot::RDNS($robot, $addr);
+    sub process {
+        my ($addr, $name) = @_;
+        my $rdns = new Hetzner::Robot::RDNS($robot, $addr);
 
-    if ($get || $set) {
-        if ($set) {
-            print STDERR "Setting $addr to $name...\n";
-            $rdns->ptr($name);
+        if ($get || $set) {
+            if ($set) {
+                print STDERR "Setting $addr to $name...\n";
+                $rdns->ptr($name);
+            }
+            print $rdns->addr, "\t", $rdns->ptr, "\n";
         }
-        print $rdns->addr, "\t", $rdns->ptr, "\n";
-    }
-    if ($del) {
-        print STDERR "Removing RDNS entry for $addr...\n";
-        $rdns->del;
-    }
-}
-
-if ($batch) {
-    while (<STDIN>) {
-        s/[[:space:]]*#.*$//;
-        next if (/^$/);
-        my ($addr, $name) = split(/[[:space:]]+/);
-        my $i = new Hetzner::Robot::RDNS($robot, $addr);
-        if ($name ne "") {
-            print STDERR "Setting RDNS entry for $addr to $name...\n";
-            $i->ptr($name);
-        } else {
+        if ($del) {
             print STDERR "Removing RDNS entry for $addr...\n";
-            $i->del;
+            $rdns->del;
         }
-        print $i->addr, "\t", $i->ptr, "\n";
     }
-} else {
-    # handle a single change
-    process($addr, $name);
+
+    if ($batch) {
+        while (<STDIN>) {
+            s/[[:space:]]*#.*$//;
+            next if (/^$/);
+            my ($addr, $name) = split(/[[:space:]]+/);
+            my $i = new Hetzner::Robot::RDNS($robot, $addr);
+            if ($name ne "") {
+                print STDERR "Setting RDNS entry for $addr to $name...\n";
+                $i->ptr($name);
+            } else {
+                print STDERR "Removing RDNS entry for $addr...\n";
+                $i->del;
+            }
+            print $i->addr, "\t", $i->ptr, "\n";
+        }
+    } else {
+        # handle a single change
+        process($addr, $name);
+    }
+}
+
+1;
+
+if( ! (caller(0))[7]) {
+    Hetzner::Robot::RDNS::main::run();
 }
 
 1;
