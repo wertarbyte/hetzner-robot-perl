@@ -117,6 +117,21 @@ sub disable {
 }
 1;
 
+package Hetzner::Robot::Reset;
+use base "Hetzner::Robot::Item";
+
+sub available_methods {
+    my ($self) = @_;
+    return $self->req("GET", "/reset/".$self->{key})->{"reset"}{"type"};
+}
+
+sub execute {
+    my ($self, $method) = @_;
+    $method = "sw" unless $method;
+    return $self->req("POST", "/reset/".$self->{key}, {type=>$method});
+}
+1;
+
 ##################################
 
 package Hetzner::Robot::RDNS::main;
