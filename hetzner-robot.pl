@@ -179,8 +179,7 @@ package Hetzner::Robot::RDNS::main;
 use Getopt::Long;
 
 sub run {
-    my $user = undef;
-    my $pass = undef;
+    my ($user, $pass) = @_;
 
     my ($get, $set, $del);
     my ($addr, $name);
@@ -194,8 +193,6 @@ sub run {
     }
 
     GetOptions (
-        'username|user|u=s' => \$user,
-        'password|pass|p=s' => \$pass,
         'get|g' => \$get,
         'set|s' => \$set,
         'delete|del|d' => \$del,
@@ -253,8 +250,35 @@ sub run {
 
 1;
 
+package default;
+use Getopt::Long;
+
+# Are we "required" or called as a stand-alone program?
 if( ! (caller(0))[7]) {
-    Hetzner::Robot::RDNS::main::run();
+    my $p = new Getopt::Long::Parser;
+    $p->configure("pass_through");
+
+    my ($user, $pass);
+    my $mode = "rdns";
+    $p->getoptions (
+        'username|user|u=s' => \$user,
+        'password|pass|p=s' => \$pass,
+        'mode=s' => \$mode
+    ) || exit 1;
+
+    if (lc $mode eq "rdns") {
+        Hetzner::Robot::RDNS::main::run($user, $pass);
+    }
+    if (lc $mode eq "wol") {
+        die "WOL not yet implemented in this frontend\n";
+    }
+    if (lc $mode eq "reset") {
+        die "Reset not yet implemented in this frontend\n";
+    }
+    if (lc $mode eq "rescue") {
+        die "Rescue system configuration not yet implemented in this frontend\”";
+    }
+
 }
 
 1;
