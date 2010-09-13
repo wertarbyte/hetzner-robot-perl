@@ -279,6 +279,46 @@ sub run {
 
 1;
 
+package Hetzner::Robot::Reset::main;
+use Getopt::Long;
+
+sub run {
+    my ($user, $pass) = @_;
+    
+    my $addr;
+    my $force = 0;
+    my $method = 'sw';
+
+    GetOptions (
+        'address|addr|a=s' => \$addr,
+        'method' => \$method,
+        'force!' => \$force
+    ) || Hetzner::Robot::main::abort();
+    Hetzner::Robot::main::abort("No server address specified!") unless defined $addr;
+
+    my $robot = new Hetzner::Robot($user, $pass);
+    
+    if ($force || confirm_reset($addr, $method)) {
+        $robot->server($addr)->reset->execute($method);
+    }
+}
+
+sub confirm_reset {
+    my ($addr, $m) = @_;
+    my $magic = "Do as I say!";
+    print STDERR "Are you sure you want to reboot the server <$addr> ($m)?\nPlease enter the sentence '$magic'\n> ";
+    my $answer = <STDIN>;
+    chomp($answer);
+    if (lc $answer eq lc $magic) {
+        print STDERR "Thank you.\n";
+        return 1;
+    } else {
+        Hetzner::Robot::main::abort("Reset aborted.");
+    }
+}
+
+1;
+
 package Hetzner::Robot::main;
 use Getopt::Long;
 
@@ -308,7 +348,7 @@ sub run {
         Hetzner::Robot::WOL::main::run($user, $pass);
     }
     if (lc $mode eq "reset") {
-        die "Reset not yet implemented in this frontend\n";
+        Hetzner::Robot::Reset::main::run($user, $pass);
     }
     if (lc $mode eq "rescue") {
         die "Rescue system configuration not yet implemented in this frontend\”";
