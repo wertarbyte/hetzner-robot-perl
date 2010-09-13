@@ -111,23 +111,31 @@ use base "Hetzner::Robot::Item";
 
 sub status {
     my ($self) = @_;
-    return $self->req("GET", "/boot/".$self->key);
+    return $self->req("GET", "/boot/".$self->key)->{boot}{rescue};
 }
 
 sub active {
-    return ( $_[0]->status()->{boot}{rescue}{active} ? 1 : 0 );
+    return ( $_[0]->status()->{active} ? 1 : 0 );
 }
 
 sub password {
-    return $_[0]->status()->{boot}{rescue}{password};
+    return $_[0]->status()->{password};
+}
+
+sub os {
+    return $_[0]->status()->{os};
+}
+
+sub arch {
+    return $_[0]->status()->{arch};
 }
 
 sub available_os {
-    return @{ $_[0]->status()->{boot}{rescue}{os} };
+    return @{ $_[0]->status()->{os} };
 }
 
 sub available_arch {
-    return @{ $_[0]->status()->{boot}{rescue}{arch} };
+    return @{ $_[0]->status()->{arch} };
 }
 
 sub enable {
@@ -322,6 +330,7 @@ sub run {
     
     my $enable;
     my $disable;
+    my $status;
     my $addr;
     my $arch;
     my $sys;
@@ -329,11 +338,13 @@ sub run {
     GetOptions (
         'enable' => \$enable,
         'disable' => \$disable,
+        'status' => \$status,
         'address|addr|a=s' => \$addr,
         'architecture|arch=s' => \$arch,
         'system|sys=s' => \$sys
     ) || Hetzner::Robot::main::abort();
     Hetzner::Robot::main::abort("No server address specified!") unless defined $addr;
+    Hetzner::Robot::main::abort("No action (disable/enable/status) specified!") unless ($enable || $disable || $status);
     
     my $rescue = $robot->server($addr)->rescue;
     if ($enable) {
@@ -347,7 +358,18 @@ sub run {
     if ($disable) {
         $rescue->disable;
     }
-
+    if ($status) {
+        my $r = $rescue;
+        print "active:\t".$r->active."\n";
+        if ($r->active) {
+            print "os:\t".$r->os."\n";
+            print "arch:\t".$r->arch."\n";
+            print "password:\t".$r->password."\n";
+        } else {
+            print "archs:\t".join(" ", $r->available_arch)."\n";
+            print "systems:\t".join(" ", $r->available_os)."\n";
+        }
+    }
 }
 
 1;
