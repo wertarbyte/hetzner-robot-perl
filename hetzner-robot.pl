@@ -387,7 +387,7 @@ sub run {
 
     my $robot = new Hetzner::Robot($user, $pass);
     
-   if (exists $modes{lc $mode}) {
+    if (exists $modes{lc $mode}) {
         no strict 'refs';
         &{"Hetzner::Robot::".$modes{$mode}."::main::run"}($robot);
     } else {
