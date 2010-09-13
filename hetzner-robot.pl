@@ -55,7 +55,15 @@ sub new {
 }
 sub req {
     my ($self, @params) = @_;
-    $self->{robot}->req(@params);
+    $self->robot->req(@params);
+}
+sub robot {
+    my ($self) = @_;
+    return $self->{robot};
+}
+sub key {
+    my ($self) = @_;
+    return $self->{key};
 }
 1;
 
@@ -64,21 +72,21 @@ use base "Hetzner::Robot::Item";
 
 sub addr {
     my ($self) = @_;
-    return $self->{key};
+    return $self->key;
 }
 
 sub ptr {
     my ($self, $val) = @_;
     if (defined $val) {
-        return $self->req("POST", "/rdns/".$self->{key}, { ptr => $val })->{rdns}{ptr};
+        return $self->req("POST", "/rdns/".$self->key, { ptr => $val })->{rdns}{ptr};
     } else {
-        return $self->req("GET", "/rdns/".$self->{key})->{rdns}{ptr};
+        return $self->req("GET", "/rdns/".$self->key)->{rdns}{ptr};
     }
 }
 
 sub del {
     my ($self) = @_;
-    return $self->req("DELETE", "/rdns/".$self->{key});
+    return $self->req("DELETE", "/rdns/".$self->key);
 }
 1;
 
@@ -87,7 +95,7 @@ use base "Hetzner::Robot::Item";
 
 sub status {
     my ($self) = @_;
-    return $self->req("GET", "/boot/".$self->{key});
+    return $self->req("GET", "/boot/".$self->key);
 }
 
 sub active {
@@ -108,12 +116,12 @@ sub available_arch {
 
 sub enable {
     my ($self, $os, $arch) = @_;
-    return $self->req("POST", "/boot/".$self->{key}."/rescue", {os => $os, arch => $arch});
+    return $self->req("POST", "/boot/".$self->key."/rescue", {os => $os, arch => $arch});
 }
 
 sub disable {
     my ($self) = @_;
-    return $self->req("DELETE", "/boot/".$self->{key}."/rescue");
+    return $self->req("DELETE", "/boot/".$self->key."/rescue");
 }
 1;
 
@@ -122,13 +130,13 @@ use base "Hetzner::Robot::Item";
 
 sub available_methods {
     my ($self) = @_;
-    return $self->req("GET", "/reset/".$self->{key})->{"reset"}{"type"};
+    return $self->req("GET", "/reset/".$self->key)->{"reset"}{"type"};
 }
 
 sub execute {
     my ($self, $method) = @_;
     $method = "sw" unless $method;
-    return $self->req("POST", "/reset/".$self->{key}, {type=>$method});
+    return $self->req("POST", "/reset/".$self->key, {type=>$method});
 }
 1;
 
@@ -137,7 +145,7 @@ use base "Hetzner::Robot::Item";
 
 sub execute {
     my ($self) = @_;
-    return $self->req("POST", "/wol/".$self->{key}, {});
+    return $self->req("POST", "/wol/".$self->key, {});
 }
 1;
 
