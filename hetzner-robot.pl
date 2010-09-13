@@ -186,12 +186,6 @@ sub run {
 
     my $batch = 0;
 
-    sub abort {
-        my ($msg) = @_;
-        print STDERR $msg,"\n" if $msg;
-        exit 1;
-    }
-
     GetOptions (
         'get|g' => \$get,
         'set|s' => \$set,
@@ -199,13 +193,12 @@ sub run {
         'hostname|name|n=s' => \$name,
         'address|addr|a=s' => \$addr,
         'batch' => \$batch
-    ) || abort;
-# check command line
-    abort "No user credentials specified!" unless (defined $user && defined $pass);
-    abort "No operation specified!" unless ($get ^ $set ^ $del ^ $batch);
+    ) || Hetzner::Robot::main::abort();
+    # check command line
+    Hetzner::Robot::main::abort("No operation specified!") unless ($get ^ $set ^ $del ^ $batch);
     unless ($batch) {
-        abort "No address specified!" if (($get||$set||$del) && !defined $addr);
-        abort "No hostname specified!" if ($set && !defined $name);
+        Hetzner::Robot::main::abort("No address specified!") if (($get||$set||$del) && !defined $addr);
+        Hetzner::Robot::main::abort("No hostname specified!") if ($set && !defined $name);
     }
 
     my $robot = new Hetzner::Robot($user, $pass);
@@ -250,21 +243,27 @@ sub run {
 
 1;
 
-package default;
+package Hetzner::Robot::main;
 use Getopt::Long;
 
-# Are we "required" or called as a stand-alone program?
-if( ! (caller(0))[7]) {
+sub abort {
+    my ($msg) = @_;
+    print STDERR $msg,"\n" if $msg;
+    exit 1;
+}
+
+sub run {
     my $p = new Getopt::Long::Parser;
     $p->configure("pass_through");
 
-    my ($user, $pass);
-    my $mode = "rdns";
+    my ($user, $pass, $mode);
     $p->getoptions (
         'username|user|u=s' => \$user,
         'password|pass|p=s' => \$pass,
         'mode=s' => \$mode
-    ) || exit 1;
+    ) || abort;
+    abort "No user credentials specified!" unless (defined $user && defined $pass);
+    abort "No operation mode (rdns/wol/reset/rescue) specified!" unless defined $mode;
 
     if (lc $mode eq "rdns") {
         Hetzner::Robot::RDNS::main::run($user, $pass);
@@ -281,4 +280,11 @@ if( ! (caller(0))[7]) {
 
 }
 
+1;
+
+package default;
+# Are we "required" or called as a stand-alone program?
+if( ! (caller(0))[7]) {
+    Hetzner::Robot::main::run();
+}
 1;
