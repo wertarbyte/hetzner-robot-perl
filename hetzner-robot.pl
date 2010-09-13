@@ -44,6 +44,10 @@ sub req {
         return undef;
     }
 }
+sub server {
+    my ($self, $addr) = @_;
+    return Hetzner::Robot::Server->new($self, $addr);
+}
 1;
 
 package Hetzner::Robot::Item;
