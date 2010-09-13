@@ -86,7 +86,7 @@ sub key {
 package Hetzner::Robot::RDNS;
 use base "Hetzner::Robot::Item";
 
-sub addr {
+sub address {
     my ($self) = @_;
     return $self->key;
 }
@@ -248,7 +248,7 @@ sub run {
                 print STDERR "Removing RDNS entry for $addr...\n";
                 $i->del;
             }
-            print $i->addr, "\t", $i->ptr, "\n";
+            print $i->address, "\t", $i->ptr, "\n";
         }
     } else {
         # handle a single change
