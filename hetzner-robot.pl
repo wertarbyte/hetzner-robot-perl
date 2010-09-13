@@ -106,6 +106,37 @@ sub del {
 }
 1;
 
+package Hetzner::Robot::Failover;
+use base "Hetzner::Robot::Item";
+
+sub address {
+    my ($self) = @_;
+    return $self->key;
+}
+
+sub netmask {
+    my ($self) = @_;
+    return $self->req("GET", "/failover/".$self->key)->{failover}{netmask};
+}
+
+sub server {
+    my ($self) = @_;
+    my $addr = $self->req("GET", "/failover/".$self->key)->{failover}{server_ip};
+    return $self->robot->server($addr);
+}
+
+sub target {
+    my ($self, $route) = @_;
+    if ($route) {
+        my $ta = $route->address;
+        $self->req("POST", "/failover/".$self->key, {active_server_ip=>$ta});
+    }
+    my $addr = $self->req("GET", "/failover/".$self->key)->{failover}{active_server_ip};
+    return $self->robot->server($addr);
+}
+
+1;
+
 package Hetzner::Robot::Rescue;
 use base "Hetzner::Robot::Item";
 
@@ -266,6 +297,38 @@ sub run {
 
 1;
 
+package Hetzner::Robot::Failover::main;
+use Getopt::Long;
+
+sub run {
+    my ($robot) = @_;
+    
+    my $addr;
+    my $target;
+    my $status;
+
+    GetOptions (
+        'address|addr|a=s' => \$addr,
+        'target=s' => \$target,
+        'status' => \$status
+    ) || Hetzner::Robot::main::abort();
+    Hetzner::Robot::main::abort("No failover address specified!") unless defined $addr;
+    
+    my $fo = new Hetzner::Robot::Failover($robot, $addr);
+    if ($target) {
+        my $t = $robot->server($target);
+        $fo->target($fo);
+    }
+    if ($status) {
+        print "address:\t".$fo->address."\n";
+        print "netmask:\t".$fo->netmask."\n";
+        print "server:\t".$fo->server->address."\n";
+        print "target:\t".$fo->target->address."\n";
+    }
+}
+
+1;
+
 package Hetzner::Robot::WOL::main;
 use Getopt::Long;
 
@@ -387,10 +450,11 @@ sub abort {
 sub run {
     # available operation modes
     my %modes = (
-        rdns    => "RDNS",
-        wol     => "WOL",
-        reset   => "Reset",
-        rescue  => "Rescue"
+        rdns      => "RDNS",
+        failover  => "Failover",
+        wol       => "WOL",
+        reset     => "Reset",
+        rescue    => "Rescue"
     );
     
     my $p = new Getopt::Long::Parser;
