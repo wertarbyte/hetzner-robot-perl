@@ -132,6 +132,15 @@ sub execute {
 }
 1;
 
+package Hetzner::Robot::WOL;
+use base "Hetzner::Robot::Item";
+
+sub execute {
+    my ($self) = @_;
+    return $self->req("POST", "/wol/".$self->{key}, {});
+}
+1;
+
 ##################################
 
 package Hetzner::Robot::RDNS::main;
