@@ -149,6 +149,26 @@ sub execute {
 }
 1;
 
+package Hetzner::Robot::Server;
+use base "Hetzner::Robot::Item";
+
+sub wol {
+    my ($self) = @_;
+    return new Hetzner::Robot::WOL($self->robot, $self->key);
+}
+
+sub reset {
+    my ($self) = @_;
+    return new Hetzner::Robot::Reset($self->robot, $self->key);
+}
+
+sub rescue {
+    my ($self) = @_;
+    return new Hetzner::Robot::Rescue($self->robot, $self->key);
+}
+
+1;
+
 ##################################
 
 package Hetzner::Robot::RDNS::main;
