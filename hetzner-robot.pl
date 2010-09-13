@@ -196,7 +196,7 @@ package Hetzner::Robot::RDNS::main;
 use Getopt::Long;
 
 sub run {
-    my ($user, $pass) = @_;
+    my ($robot) = @_;
 
     my ($get, $set, $del);
     my ($addr, $name);
@@ -217,8 +217,6 @@ sub run {
         Hetzner::Robot::main::abort("No address specified!") if (($get||$set||$del) && !defined $addr);
         Hetzner::Robot::main::abort("No hostname specified!") if ($set && !defined $name);
     }
-
-    my $robot = new Hetzner::Robot($user, $pass);
 
     sub process {
         my ($addr, $name) = @_;
