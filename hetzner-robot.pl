@@ -365,6 +365,14 @@ sub abort {
 }
 
 sub run {
+    # available operation modes
+    my %modes = (
+        rdns    => "RDNS",
+        wol     => "WOL",
+        reset   => "Reset",
+        rescue  => "Rescue"
+    );
+    
     my $p = new Getopt::Long::Parser;
     $p->configure("pass_through");
 
@@ -375,19 +383,11 @@ sub run {
         'mode=s' => \$mode
     ) || abort;
     abort "No user credentials specified!" unless (defined $user && defined $pass);
-    abort "No operation mode (rdns/wol/reset/rescue) specified!" unless defined $mode;
+    abort "No valid operation mode (".join("/", keys %modes).") specified!" unless defined $mode or defined $modes{lc $mode};
 
     my $robot = new Hetzner::Robot($user, $pass);
     
-    # Modules to run
-    my %modes = (
-        rdns    => "RDNS",
-        wol     => "WOL",
-        reset   => "Reset",
-        rescue  => "Rescue"
-    );
-    
-    if (exists $modes{$mode}) {
+   if (exists $modes{lc $mode}) {
         no strict 'refs';
         &{"Hetzner::Robot::".$modes{$mode}."::main::run"}($robot);
     } else {
