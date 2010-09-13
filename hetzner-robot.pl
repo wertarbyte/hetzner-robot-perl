@@ -260,6 +260,25 @@ sub run {
 
 1;
 
+package Hetzner::Robot::WOL::main;
+use Getopt::Long;
+
+sub run {
+    my ($user, $pass) = @_;
+    
+    my $addr;
+
+    GetOptions (
+        'address|addr|a=s' => \$addr,
+    ) || Hetzner::Robot::main::abort();
+    Hetzner::Robot::main::abort("No server address specified!") unless defined $addr;
+
+    my $robot = new Hetzner::Robot($user, $pass);
+    $robot->server($addr)->wol->execute;
+}
+
+1;
+
 package Hetzner::Robot::main;
 use Getopt::Long;
 
@@ -286,7 +305,7 @@ sub run {
         Hetzner::Robot::RDNS::main::run($user, $pass);
     }
     if (lc $mode eq "wol") {
-        die "WOL not yet implemented in this frontend\n";
+        Hetzner::Robot::WOL::main::run($user, $pass);
     }
     if (lc $mode eq "reset") {
         die "Reset not yet implemented in this frontend\n";
