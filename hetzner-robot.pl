@@ -264,7 +264,7 @@ package Hetzner::Robot::WOL::main;
 use Getopt::Long;
 
 sub run {
-    my ($user, $pass) = @_;
+    my ($robot) = @_;
     
     my $addr;
 
@@ -273,7 +273,6 @@ sub run {
     ) || Hetzner::Robot::main::abort();
     Hetzner::Robot::main::abort("No server address specified!") unless defined $addr;
 
-    my $robot = new Hetzner::Robot($user, $pass);
     $robot->server($addr)->wol->execute;
 }
 
@@ -283,7 +282,7 @@ package Hetzner::Robot::Reset::main;
 use Getopt::Long;
 
 sub run {
-    my ($user, $pass) = @_;
+    my ($robot) = @_;
     
     my $addr;
     my $force = 0;
@@ -296,8 +295,6 @@ sub run {
     ) || Hetzner::Robot::main::abort();
     Hetzner::Robot::main::abort("No server address specified!") unless defined $addr;
 
-    my $robot = new Hetzner::Robot($user, $pass);
-    
     if ($force || confirm_reset($addr, $method)) {
         $robot->server($addr)->reset->execute($method);
     }
@@ -323,7 +320,7 @@ package Hetzner::Robot::Rescue::main;
 use Getopt::Long;
 
 sub run {
-    my ($user, $pass) = @_;
+    my ($robot) = @_;
     
     my $enable;
     my $disable;
@@ -339,8 +336,6 @@ sub run {
         'system|sys=s' => \$sys
     ) || Hetzner::Robot::main::abort();
     Hetzner::Robot::main::abort("No server address specified!") unless defined $addr;
-    
-    my $robot = new Hetzner::Robot($user, $pass);
     
     my $rescue = $robot->server($addr)->rescue;
     if ($enable) {
@@ -382,19 +377,22 @@ sub run {
     abort "No user credentials specified!" unless (defined $user && defined $pass);
     abort "No operation mode (rdns/wol/reset/rescue) specified!" unless defined $mode;
 
-    if (lc $mode eq "rdns") {
-        Hetzner::Robot::RDNS::main::run($user, $pass);
+    my $robot = new Hetzner::Robot($user, $pass);
+    
+    # Modules to run
+    my %modes = (
+        rdns    => "RDNS",
+        wol     => "WOL",
+        reset   => "Reset",
+        rescue  => "Rescue"
+    );
+    
+    if (exists $modes{$mode}) {
+        no strict 'refs';
+        &{"Hetzner::Robot::".$modes{$mode}."::main::run"}($robot);
+    } else {
+        abort "Unknown mode '$mode'";
     }
-    if (lc $mode eq "wol") {
-        Hetzner::Robot::WOL::main::run($user, $pass);
-    }
-    if (lc $mode eq "reset") {
-        Hetzner::Robot::Reset::main::run($user, $pass);
-    }
-    if (lc $mode eq "rescue") {
-        Hetzner::Robot::Rescue::main::run($user, $pass);
-    }
-
 }
 
 1;
