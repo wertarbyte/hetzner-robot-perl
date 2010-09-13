@@ -156,6 +156,11 @@ sub execute {
 package Hetzner::Robot::Server;
 use base "Hetzner::Robot::Item";
 
+sub address {
+    my ($self) = @_;
+    return $self->key;
+}
+
 sub wol {
     my ($self) = @_;
     return new Hetzner::Robot::WOL($self->robot, $self->key);
