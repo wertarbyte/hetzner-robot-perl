@@ -319,6 +319,47 @@ sub confirm_reset {
 
 1;
 
+package Hetzner::Robot::Rescue::main;
+use Getopt::Long;
+
+sub run {
+    my ($user, $pass) = @_;
+    
+    my $enable;
+    my $disable;
+    my $addr;
+    my $arch;
+    my $sys;
+
+    GetOptions (
+        'enable' => \$enable,
+        'disable' => \$disable,
+        'address|addr|a=s' => \$addr,
+        'architecture|arch=s' => \$arch,
+        'system|sys=s' => \$sys
+    ) || Hetzner::Robot::main::abort();
+    Hetzner::Robot::main::abort("No server address specified!") unless defined $addr;
+    
+    my $robot = new Hetzner::Robot($user, $pass);
+    
+    my $rescue = $robot->server($addr)->rescue;
+    if ($enable) {
+        Hetzner::Robot::main::abort("No operating system specified!") unless defined $sys;
+        Hetzner::Robot::main::abort("No architecture specified!") unless defined $arch;
+        if ($rescue->enable($sys, $arch)) {
+            print "Rescue system enabled, password is:\n";
+            print $rescue->password(), "\n";
+        }
+    }
+    if ($disable) {
+        $rescue->disable;
+    }
+
+}
+
+1;
+
+
 package Hetzner::Robot::main;
 use Getopt::Long;
 
@@ -351,7 +392,7 @@ sub run {
         Hetzner::Robot::Reset::main::run($user, $pass);
     }
     if (lc $mode eq "rescue") {
-        die "Rescue system configuration not yet implemented in this frontend\”";
+        Hetzner::Robot::Rescue::main::run($user, $pass);
     }
 
 }
