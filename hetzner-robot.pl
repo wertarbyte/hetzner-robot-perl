@@ -17,7 +17,8 @@ use URI::Escape;
 our $BASEURL = "https://robot-ws.your-server.de";
 
 sub new {
-    my ($class, $user, $password) = @_;
+    my ($this, $user, $password) = @_;
+    my $class = ref($this) || $this;
     my $self = { user => $user, pass => $password };
     $self->{ua} = new LWP::UserAgent();
     $self->{ua}->env_proxy;
@@ -61,7 +62,8 @@ sub servers {
 package Hetzner::Robot::Item;
 
 sub new {
-    my ($class, $robot, $key) = @_;
+    my ($this, $robot, $key) = @_;
+    my $class = ref($this) || $this;
     my $self = { robot => $robot, key => $key };
     bless $self, $class;
 }
