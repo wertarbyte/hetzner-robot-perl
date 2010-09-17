@@ -1,12 +1,13 @@
 Hetzner::Robot / hetzner-robot.pl
 by Stefan Tomanek <stefan.tomanek@wertarbyte.de>
 
-Control the Hetzner robot from your Perl skript.
+Control the Hetzner robot from your Perl scripts or console.
 
-The script hetzner-robot.pl can be used as a standalone program as well as a
-Perl module in your own scripts. It uses the JSON-Webservice deployed by
-Hetzner: http://wiki.hetzner.de/index.php/Robot_Webservice
-
+The script hetzner-robot.pl can be used as a standalone program as well as an
+object oriented Perl module in your own scripts. It uses the JSON-Webservice
+deployed by Hetzner (http://wiki.hetzner.de/index.php/Robot_Webservice) and
+encapsulates it into a class/object structure. Many default operations are
+provided through a command line interface.
 
 == Examples for standalone operation ==
 
