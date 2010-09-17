@@ -298,11 +298,6 @@ use base "Hetzner::Robot::Address";
 
 sub __section { return "subnet"; }
 
-sub __info {
-    my ($self) = @_;
-    return $self->req("GET", "/".$self->__section."/".$self->key)->{$self->__section};
-}
-
 sub netmask {
     my ($self) = @_;
     return $self->__info->{mask};
