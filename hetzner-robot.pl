@@ -243,9 +243,11 @@ sub networks {
 package Hetzner::Robot::Address;
 use base "Hetzner::Robot::Item";
 
+sub __section { return "ip"; }
+
 sub __info {
     my ($self) = @_;
-    return $self->req("GET", "/ip/".$self->key)->{ip};
+    return $self->req("GET", "/".$self->__section."/".$self->key)->{$self->__section};
 }
 
 sub address {
@@ -263,14 +265,42 @@ sub is_locked {
     return $self->__info->{locked};
 }
 
+sub __conf {
+    my ($self, $var, $val) = @_;
+    if (defined $val) {
+        my $v = $val ? "true" : "false";
+        return $self->req("POST", "/".$self->__section."/".$self->key, {$var => $v})->{$self->__section}{$var};
+    } else {
+        return $self->__info->{$var};
+    }
+}
+
+sub traffic_warnings {
+    return $_[0]->__conf("traffic_warnings", $_[1]);
+}
+
+sub traffic_hourly {
+    return $_[0]->__conf("traffic_hourly", $_[1]);
+}
+
+sub traffic_daily {
+    return $_[0]->__conf("traffic_daily", $_[1]);
+}
+
+sub traffic_monthly {
+    return $_[0]->__conf("traffic_monthly", $_[1]);
+}
+
 1;
 
 package Hetzner::Robot::Subnet;
 use base "Hetzner::Robot::Address";
 
+sub __section { return "subnet"; }
+
 sub __info {
     my ($self) = @_;
-    return $self->req("GET", "/subnet/".$self->key)->{subnet};
+    return $self->req("GET", "/".$self->__section."/".$self->key)->{$self->__section};
 }
 
 sub netmask {
