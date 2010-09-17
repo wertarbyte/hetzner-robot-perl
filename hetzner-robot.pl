@@ -53,8 +53,7 @@ sub server {
 
 sub servers {
     my ($self) = @_;
-    my $l = $self->req("GET", "/server");
-    return map { $self->server($_->{server}{server_ip}) } @$l;
+    return Hetzner::Robot::Server->instances($self);
 }
 
 1;
@@ -204,6 +203,13 @@ sub execute {
 
 package Hetzner::Robot::Server;
 use base "Hetzner::Robot::Item";
+
+sub instances {
+    my ($this, $robot) = @_;
+    my $class = ref($this) || $this;
+    my $l = $robot->req("GET", "/server");
+    return map { $class->new($robot, $_->{server}{server_ip}) } @$l;
+}
 
 sub address {
     my ($self) = @_;
