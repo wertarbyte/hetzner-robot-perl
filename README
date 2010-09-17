@@ -10,15 +10,15 @@ Hetzner: http://wiki.hetzner.de/index.php/Robot_Webservice
 
 == Examples for standalone operation ==
 
-# retrieve reverse DNS entry for IP address 188.40.206.2
+# retrieve reverse DNS entry for IP address 1.2.3.4
 
 hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
-    --mode rdns --get --addr 188.40.206.2
+    --mode rdns --get --addr 1.2.3.4
 
-# set reverse DNS entry for address 188.40.206.2 to "foobar.meinrdns.wertarbyte.de"
+# set reverse DNS entry for address 1.2.3.4 to "foobar.example.org"
 
 hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
-    --mode rdns --set --addr 188.40.206.2 --hostname foobar.meinrdns.wertarbyte.de
+    --mode rdns --set --addr 1.2.3.4 --hostname foobar.example.org
 
 # instruct the hetzner robot to trigger a hardware reset at server 1.2.3.4
 
