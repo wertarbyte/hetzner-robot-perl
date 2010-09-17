@@ -1,0 +1,57 @@
+Hetzner::Robot / hetzner-robot.pl
+by Stefan Tomanek <stefan.tomanek@wertarbyte.de>
+
+Control the Hetzner robot from your Perl skript.
+
+The script hetzner-robot.pl can be used as a standalone program as well as a
+Perl module in your own scripts. It uses the JSON-Webservice deployed by
+Hetzner: http://wiki.hetzner.de/index.php/Robot_Webservice
+
+
+== Examples for standalone operation ==
+
+# retrieve reverse DNS entry for IP address 188.40.206.2
+
+hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
+    --mode rdns --get --addr 188.40.206.2
+
+# set reverse DNS entry for address 188.40.206.2 to "foobar.meinrdns.wertarbyte.de"
+
+hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
+    --mode rdns --set --addr 188.40.206.2 --hostname foobar.meinrdns.wertarbyte.de
+
+# instruct the hetzner robot to trigger a hardware reset at server 1.2.3.4
+
+hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
+    --mode reset --address 1.2.3.4 --method hw
+
+# enable the rescue system for server 1.2.3.4
+
+hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
+    --mode rescue --address 1.2.3.4 --system linux --arch 64
+
+# send Wake-On-LAN signal to system 1.2.3.4
+
+hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
+    --mode wol --address 1.2.3.4
+
+
+== Examples for use in scripts ==
+
+#!/usr/bin/perl
+# load module
+require "hetzner-rdns.pl";
+
+my $robot = new Hetzner::Robot("username", "password");
+my $serverA = $robot->server("1.2.3.4");
+# enumerate networks assigned to server
+for my $n ($serverA->networks) {
+    print $n->address."/".$n->netmask, "\n";
+}
+
+# send WOL signal to all servers
+for my $sys ($robot->servers) {
+    print "Waking up ".$sys->address."\n";
+    $sys->wol->execute;
+    # $sys->reset->execute("sw"); # we could trigger a soft reboot as well ;-)
+}
