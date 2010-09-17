@@ -308,9 +308,13 @@ sub netmask {
     return $self->__info->{mask};
 }
 
-sub is_failover {
+sub failover {
     my ($self) = @_;
-    return $self->__info->{failover};
+    if ($self->__info->{failover}) {
+        return Hetzner::Robot::Failover->new($self->address);
+    } else {
+        return undef;
+    }
 }
 
 1;
