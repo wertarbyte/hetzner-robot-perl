@@ -223,6 +223,66 @@ sub rescue {
     return new Hetzner::Robot::Rescue($self->robot, $self->key);
 }
 
+sub __info {
+    my ($self) = @_;
+    return $self->req("GET", "/server/".$self->key)->{"server"};
+}
+
+sub addresses {
+    my ($self) = @_;
+    return map { Hetzner::Robot::Address->new($self->robot, $_) } @{$self->__info()->{ip}};
+}
+
+sub networks {
+    my ($self) = @_;
+    return map { Hetzner::Robot::Subnet->new($self->robot, $_->{ip}) } @{$self->__info()->{subnet}};
+}
+
+1;
+
+package Hetzner::Robot::Address;
+use base "Hetzner::Robot::Item";
+
+sub __info {
+    my ($self) = @_;
+    return $self->req("GET", "/ip/".$self->key)->{ip};
+}
+
+sub address {
+    my ($self) = @_;
+    return $self->key;
+}
+
+sub server {
+    my ($self) = @_;
+    return $self->robot->server($self->__info->{server_ip});
+}
+
+sub is_locked {
+    my ($self) = @_;
+    return $self->__info->{locked};
+}
+
+1;
+
+package Hetzner::Robot::Subnet;
+use base "Hetzner::Robot::Address";
+
+sub __info {
+    my ($self) = @_;
+    return $self->req("GET", "/subnet/".$self->key)->{subnet};
+}
+
+sub netmask {
+    my ($self) = @_;
+    return $self->__info->{mask};
+}
+
+sub is_failover {
+    my ($self) = @_;
+    return $self->__info->{failover};
+}
+
 1;
 
 ##################################
