@@ -52,12 +52,8 @@ sub server {
 
 sub servers {
     my ($self) = @_;
-    my @result = ();
-    # We use the reset interface to retrieve a list of servers - while
-    # this only retrieves servers with reset interface, it covers all recent
-    # devices present and is enough - at least for now.
-    my $l = $self->req("GET", "/reset");
-    return map { Hetzner::Robot::Server->new($self, $_->{reset}{server_ip}) } @$l;
+    my $l = $self->req("GET", "/server");
+    return map { $self->server($_->{server}{server_ip}) } @$l;
 }
 
 1;
