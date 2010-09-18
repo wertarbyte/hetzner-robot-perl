@@ -83,9 +83,8 @@ sub key {
 sub __section {
     my ($self) = @_;
     # extract section name from class name
-    my $name = lc ( ref($self) || $self );
-    $name =~ s/^.*:://;
-    return $name;
+    my @c = split /::/, ( ref($self) || $self );
+    return lc $c[2];
 }
 
 sub __info {
