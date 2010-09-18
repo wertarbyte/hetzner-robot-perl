@@ -42,7 +42,7 @@ sub req {
             return 1;
         }
     } else {
-        die $res->code.": ".$res->message."\n";
+        die $res->code.": ".$res->message." (".$url.")\n";
         return undef;
     }
 }
@@ -80,7 +80,14 @@ sub key {
     return $self->{key};
 }
 
-sub __section { return undef; }
+sub __section {
+    my ($self) = @_;
+    # extract section name from class name
+    my $name = lc ( ref($self) || $self );
+    $name =~ s/^.*:://;
+    return $name;
+}
+
 sub __info {
     my ($self) = @_;
     die "No section defined for class ".(ref($self) || $self) unless defined $self->__section;
@@ -91,8 +98,6 @@ sub __info {
 
 package Hetzner::Robot::RDNS;
 use base "Hetzner::Robot::Item";
-
-sub __section {return "rdns"};
 
 sub address {
     my ($self) = @_;
@@ -115,8 +120,6 @@ sub del {
 
 package Hetzner::Robot::Failover;
 use base "Hetzner::Robot::Item";
-
-sub __section { return "failover"; }
 
 sub address {
     my ($self) = @_;
@@ -149,35 +152,36 @@ sub target {
 package Hetzner::Robot::Rescue;
 use base "Hetzner::Robot::Item";
 
+# override section name
 sub __section { return "boot"; }
 
-sub status {
+sub __info {
     my ($self) = @_;
-    return $self->__info->{rescue};
+    return $self->SUPER::__info->{rescue};
 }
 
 sub active {
-    return ( $_[0]->status()->{active} ? 1 : 0 );
+    return ( $_[0]->__info->{active} ? 1 : 0 );
 }
 
 sub password {
-    return $_[0]->status()->{password};
+    return $_[0]->__info->{password};
 }
 
 sub os {
-    return $_[0]->status()->{os};
+    return $_[0]->__info->{os};
 }
 
 sub arch {
-    return $_[0]->status()->{arch};
+    return $_[0]->__info->{arch};
 }
 
 sub available_os {
-    return @{ $_[0]->status()->{os} };
+    return @{ $_[0]->__info->{os} };
 }
 
 sub available_arch {
-    return @{ $_[0]->status()->{arch} };
+    return @{ $_[0]->__info->{arch} };
 }
 
 sub enable {
@@ -193,8 +197,6 @@ sub disable {
 
 package Hetzner::Robot::Reset;
 use base "Hetzner::Robot::Item";
-
-sub __section { return "reset"; }
 
 sub available_methods {
     my ($self) = @_;
@@ -217,10 +219,9 @@ sub execute {
 }
 1;
 
+
 package Hetzner::Robot::Server;
 use base "Hetzner::Robot::Item";
-
-sub __section { return "server"; };
 
 sub instances {
     my ($this, $robot) = @_;
@@ -251,7 +252,7 @@ sub rescue {
 
 sub addresses {
     my ($self) = @_;
-    return map { Hetzner::Robot::Address->new($self->robot, $_) } @{$self->__info()->{ip}};
+    return map { Hetzner::Robot::IP->new($self->robot, $_) } @{$self->__info()->{ip}};
 }
 
 sub networks {
@@ -261,10 +262,8 @@ sub networks {
 
 1;
 
-package Hetzner::Robot::Address;
+package Hetzner::Robot::IP;
 use base "Hetzner::Robot::Item";
-
-sub __section { return "ip"; }
 
 sub address {
     my ($self) = @_;
@@ -310,9 +309,7 @@ sub traffic_monthly {
 1;
 
 package Hetzner::Robot::Subnet;
-use base "Hetzner::Robot::Address";
-
-sub __section { return "subnet"; }
+use base "Hetzner::Robot::IP";
 
 sub netmask {
     my ($self) = @_;
