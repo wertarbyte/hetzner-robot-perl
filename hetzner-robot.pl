@@ -24,6 +24,7 @@ sub new {
     $self->{ua}->env_proxy;
     bless $self, $class;
 }
+
 sub req {
     my ($self, $type, $url, $data) = @_;
     my $req = new HTTP::Request($type => $BASEURL.$url);
@@ -78,10 +79,20 @@ sub key {
     my ($self) = @_;
     return $self->{key};
 }
+
+sub __section { return undef; }
+sub __info {
+    my ($self) = @_;
+    die "No section defined for class ".(ref($self) || $self) unless defined $self->__section;
+    return $self->req("GET", "/".$self->__section."/".$self->key)->{$self->__section};
+}
+
 1;
 
 package Hetzner::Robot::RDNS;
 use base "Hetzner::Robot::Item";
+
+sub __section {return "rdns"};
 
 sub address {
     my ($self) = @_;
@@ -91,10 +102,9 @@ sub address {
 sub ptr {
     my ($self, $val) = @_;
     if (defined $val) {
-        return $self->req("POST", "/rdns/".$self->key, { ptr => $val })->{rdns}{ptr};
-    } else {
-        return $self->req("GET", "/rdns/".$self->key)->{rdns}{ptr};
+        $self->req("POST", "/rdns/".$self->key, { ptr => $val });
     }
+    return $self->__info->{ptr};
 }
 
 sub del {
@@ -106,6 +116,8 @@ sub del {
 package Hetzner::Robot::Failover;
 use base "Hetzner::Robot::Item";
 
+sub __section { return "failover"; }
+
 sub address {
     my ($self) = @_;
     return $self->key;
@@ -113,12 +125,12 @@ sub address {
 
 sub netmask {
     my ($self) = @_;
-    return $self->req("GET", "/failover/".$self->key)->{failover}{netmask};
+    return $self->__info->{netmask};
 }
 
 sub server {
     my ($self) = @_;
-    my $addr = $self->req("GET", "/failover/".$self->key)->{failover}{server_ip};
+    my $addr = $self->__info->{server_ip};
     return $self->robot->server($addr);
 }
 
@@ -128,7 +140,7 @@ sub target {
         my $ta = $route->address;
         $self->req("POST", "/failover/".$self->key, {active_server_ip=>$ta});
     }
-    my $addr = $self->req("GET", "/failover/".$self->key)->{failover}{active_server_ip};
+    my $addr = $self->__info->{active_server_ip};
     return $self->robot->server($addr);
 }
 
@@ -137,9 +149,11 @@ sub target {
 package Hetzner::Robot::Rescue;
 use base "Hetzner::Robot::Item";
 
+sub __section { return "boot"; }
+
 sub status {
     my ($self) = @_;
-    return $self->req("GET", "/boot/".$self->key)->{boot}{rescue};
+    return $self->__info->{rescue};
 }
 
 sub active {
@@ -180,9 +194,11 @@ sub disable {
 package Hetzner::Robot::Reset;
 use base "Hetzner::Robot::Item";
 
+sub __section { return "reset"; }
+
 sub available_methods {
     my ($self) = @_;
-    return $self->req("GET", "/reset/".$self->key)->{"reset"}{"type"};
+    return $self->__info->{"type"};
 }
 
 sub execute {
@@ -203,6 +219,8 @@ sub execute {
 
 package Hetzner::Robot::Server;
 use base "Hetzner::Robot::Item";
+
+sub __section { return "server"; };
 
 sub instances {
     my ($this, $robot) = @_;
@@ -231,11 +249,6 @@ sub rescue {
     return new Hetzner::Robot::Rescue($self->robot, $self->key);
 }
 
-sub __info {
-    my ($self) = @_;
-    return $self->req("GET", "/server/".$self->key)->{"server"};
-}
-
 sub addresses {
     my ($self) = @_;
     return map { Hetzner::Robot::Address->new($self->robot, $_) } @{$self->__info()->{ip}};
@@ -252,11 +265,6 @@ package Hetzner::Robot::Address;
 use base "Hetzner::Robot::Item";
 
 sub __section { return "ip"; }
-
-sub __info {
-    my ($self) = @_;
-    return $self->req("GET", "/".$self->__section."/".$self->key)->{$self->__section};
-}
 
 sub address {
     my ($self) = @_;
