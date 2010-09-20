@@ -69,3 +69,8 @@ for my $sys ($robot->servers) {
     $sys->wol->execute;
     # $sys->reset->execute("sw"); # we could trigger a soft reboot as well ;-)
 }
+
+
+The examples directory also contains a simple CGI script to grant customers
+limited access to the reverse DNS capabilities of the robot; each customer
+can access the RDNS records of the addresses associated with their username.

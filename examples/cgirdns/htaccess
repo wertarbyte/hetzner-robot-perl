@@ -1,0 +1,8 @@
+AuthType Basic
+AuthName "CGIRDNS"
+AuthUserFile /var/cgirdns/htpasswd
+Require valid-user
+
+SetEnv RDNSUSERS "/var/cgirdns/userdb.txt"
+SetEnv ROBOT_USER "myrobotuser"
+SetEnv ROBOT_PASSWORD "myrobotpw"
