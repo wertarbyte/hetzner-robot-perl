@@ -38,6 +38,17 @@ hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
 hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
     --mode wol --address 1.2.3.4
 
+# switch failover address to server 1.2.3.4
+
+hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
+    --mode failover --address 5.6.7.8 --target 1.2.3.4
+
+# retrieve status of a failover address
+
+hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
+    --mode failover --address 5.6.7.8 --status
+
+
 
 == Examples for use in scripts ==
 
