@@ -22,7 +22,17 @@ sub new {
     my $self = { user => $user, pass => $password };
     $self->{ua} = new LWP::UserAgent();
     $self->{ua}->env_proxy;
+    # unset error handler by default
+    $self->{onerror} = undef;
     bless $self, $class;
+}
+
+sub error_handler {
+    my ($self, $handler) = @_;
+    if (exists $_[1]) {
+        $self->{onerror} = $handler;
+    }
+    return $self->{onerror};
 }
 
 sub req {
@@ -42,7 +52,8 @@ sub req {
             return 1;
         }
     } else {
-        die $res->code.": ".$res->message." (".$url.")\n";
+        # something bad happened, call the error handler
+        $self->__on_error($url, $res);
         return undef;
     }
 }
@@ -55,6 +66,16 @@ sub server {
 sub servers {
     my ($self) = @_;
     return Hetzner::Robot::Server->instances($self);
+}
+
+sub __on_error {
+    my ($self, $url, $res) = @_;
+    if (defined $self->error_handler) {
+        &{ $self->error_handler }($self, $url, $res);
+    } else {
+        # no custom error handler? Let's die!
+        die "Hetzner::Robot communication error: ".$res->code.": ".$res->message." (".$url.")\n";
+    }
 }
 
 1;
