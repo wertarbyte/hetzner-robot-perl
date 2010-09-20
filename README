@@ -1,6 +1,8 @@
 Hetzner::Robot / hetzner-robot.pl
 by Stefan Tomanek <stefan.tomanek@wertarbyte.de>
 
+http://github.com/wertarbyte/hetzner-robot-perl
+
 Control the Hetzner robot from your Perl scripts or console.
 
 The script hetzner-robot.pl can be used as a standalone program as well as an
