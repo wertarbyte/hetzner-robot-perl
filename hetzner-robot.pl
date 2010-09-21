@@ -399,7 +399,7 @@ sub run {
                 print STDERR "Setting $addr to $name...\n";
                 $rdns->ptr($name);
             }
-            print $rdns->addr, "\t", $rdns->ptr, "\n";
+            print $rdns->address, "\t", $rdns->ptr, "\n";
         }
         if ($del) {
             print STDERR "Removing RDNS entry for $addr...\n";
