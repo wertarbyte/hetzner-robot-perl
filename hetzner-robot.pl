@@ -108,10 +108,35 @@ sub __section {
     return lc $c[2];
 }
 
+sub __subsection {
+    my ($self) = @_;
+    my @c = split /::/, ( ref($self) || $self );
+    return lc $c[3];
+}
+
+# root item in retrieved data structures
+sub __root {
+    my ($self) = @_;
+    return $self->__subsection || $self->__section;
+}
+
+sub __url {
+    my ($self) = @_;
+    my $url = "/".$self->__section."/".$self->key;
+    if ($self->__subsection) {
+        $url .= "/".$self->__subsection;
+    }
+    return $url;
+}
+
 sub __info {
     my ($self) = @_;
-    die "No section defined for class ".(ref($self) || $self) unless defined $self->__section;
-    return $self->req("GET", "/".$self->__section."/".$self->key)->{$self->__section};
+    return $self->req("GET", $self->__url)->{$self->__root};
+}
+
+sub __conf {
+    my ($self, %vars) = @_;
+    return $self->req("POST", $self->__url, \%vars)->{$self->__root};
 }
 
 1;
@@ -127,14 +152,14 @@ sub address {
 sub ptr {
     my ($self, $val) = @_;
     if (defined $val) {
-        $self->req("POST", "/rdns/".$self->key, { ptr => $val });
+        $self->__conf( ptr => $val );
     }
     return $self->__info->{ptr};
 }
 
 sub del {
     my ($self) = @_;
-    return $self->req("DELETE", "/rdns/".$self->key);
+    return $self->req("DELETE", $self->__url);
 }
 1;
 
@@ -160,8 +185,7 @@ sub server {
 sub target {
     my ($self, $route) = @_;
     if ($route) {
-        my $ta = $route->address;
-        $self->req("POST", "/failover/".$self->key, {active_server_ip=>$ta});
+        $self->__conf( active_server_ip => $route->address );
     }
     my $addr = $self->__info->{active_server_ip};
     return $self->robot->server($addr);
@@ -169,16 +193,8 @@ sub target {
 
 1;
 
-package Hetzner::Robot::Rescue;
+package Hetzner::Robot::Boot::Rescue;
 use base "Hetzner::Robot::Item";
-
-# override section name
-sub __section { return "boot"; }
-
-sub __info {
-    my ($self) = @_;
-    return $self->SUPER::__info->{rescue};
-}
 
 sub active {
     return ( $_[0]->__info->{active} ? 1 : 0 );
@@ -206,12 +222,12 @@ sub available_arch {
 
 sub enable {
     my ($self, $os, $arch) = @_;
-    return $self->req("POST", "/boot/".$self->key."/rescue", {os => $os, arch => $arch});
+    return $self->__conf(os => $os, arch => $arch);
 }
 
 sub disable {
     my ($self) = @_;
-    return $self->req("DELETE", "/boot/".$self->key."/rescue");
+    return $self->req("DELETE", $self->__url);
 }
 1;
 
@@ -226,7 +242,7 @@ sub available_methods {
 sub execute {
     my ($self, $method) = @_;
     $method = "sw" unless $method;
-    return $self->req("POST", "/reset/".$self->key, {type=>$method});
+    return $self->__conf(type=>$method);
 }
 1;
 
@@ -235,7 +251,7 @@ use base "Hetzner::Robot::Item";
 
 sub execute {
     my ($self) = @_;
-    return $self->req("POST", "/wol/".$self->key, {});
+    return $self->__conf();
 }
 1;
 
@@ -267,7 +283,7 @@ sub reset {
 
 sub rescue {
     my ($self) = @_;
-    return new Hetzner::Robot::Rescue($self->robot, $self->key);
+    return new Hetzner::Robot::Boot::Rescue($self->robot, $self->key);
 }
 
 sub addresses {
@@ -300,30 +316,29 @@ sub is_locked {
     return $self->__info->{locked};
 }
 
-sub __conf {
+sub __trafficconf {
     my ($self, $var, $val) = @_;
     if (defined $val) {
-        my $v = $val ? "true" : "false";
-        return $self->req("POST", "/".$self->__section."/".$self->key, {$var => $v})->{$self->__section}{$var};
+        return $self->__conf($var => $val)->{$var};
     } else {
         return $self->__info->{$var};
     }
 }
 
 sub traffic_warnings {
-    return $_[0]->__conf("traffic_warnings", $_[1]);
+    return $_[0]->__trafficconf("traffic_warnings", $_[1] ? "true" : "false");
 }
 
 sub traffic_hourly {
-    return $_[0]->__conf("traffic_hourly", $_[1]);
+    return $_[0]->__trafficconf("traffic_hourly", $_[1]);
 }
 
 sub traffic_daily {
-    return $_[0]->__conf("traffic_daily", $_[1]);
+    return $_[0]->__trafficconf("traffic_daily", $_[1]);
 }
 
 sub traffic_monthly {
-    return $_[0]->__conf("traffic_monthly", $_[1]);
+    return $_[0]->__trafficconf("traffic_monthly", $_[1]);
 }
 
 1;
@@ -503,7 +518,7 @@ sub confirm_reset {
 
 1;
 
-package Hetzner::Robot::Rescue::main;
+package Hetzner::Robot::Boot::Rescue::main;
 use Getopt::Long;
 
 sub run {
@@ -572,7 +587,7 @@ sub run {
         failover  => "Failover",
         wol       => "WOL",
         reset     => "Reset",
-        rescue    => "Rescue"
+        rescue    => "Boot::Rescue"
     );
     
     my $p = new Getopt::Long::Parser;
