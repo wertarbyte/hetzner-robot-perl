@@ -166,6 +166,13 @@ sub del {
 package Hetzner::Robot::Failover;
 use base "Hetzner::Robot::Item";
 
+sub instances {
+    my ($this, $robot) = @_;
+    my $class = ref($this) || $this;
+    my $l = $robot->req("GET", "/".$class->__section);
+    return map { $class->new($robot, $_->{$class->__section}{ip}) } @$l;
+}
+
 sub address {
     my ($self) = @_;
     return $self->key;
@@ -300,6 +307,13 @@ sub networks {
 
 package Hetzner::Robot::IP;
 use base "Hetzner::Robot::Item";
+
+sub instances {
+    my ($this, $robot) = @_;
+    my $class = ref($this) || $this;
+    my $l = $robot->req("GET", "/".$class->__section);
+    return map { $class->new($robot, $_->{$class->__root}{ip}) } @$l;
+}
 
 sub address {
     my ($self) = @_;
