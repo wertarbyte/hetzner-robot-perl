@@ -65,7 +65,7 @@ sub server {
 
 sub servers {
     my ($self) = @_;
-    return Hetzner::Robot::Server->instances($self);
+    return Hetzner::Robot::Server->enumerate($self);
 }
 
 sub __on_error {
@@ -141,6 +141,26 @@ sub __conf {
 
 1;
 
+package Hetzner::Robot::Item::Enumerable;
+use base "Hetzner::Robot::Item";
+
+# enumerate all instances of an object type
+sub enumerate {
+    my ($this, $robot) = @_;
+    my $cls = ref($this) || $this;
+    my $l = $robot->req("GET", "/".$cls->__section);
+    return map { $cls->new($robot, $_->{$cls->__section}{$cls->__idkey}) } @$l;
+}
+
+# the id item in a returned data structure
+sub __idkey {
+    my ($this) = @_;
+    my $class = ref($this) || $this;
+    die "No ID key defined for class $class";
+}
+
+1;
+
 package Hetzner::Robot::RDNS;
 use base "Hetzner::Robot::Item";
 
@@ -164,14 +184,9 @@ sub del {
 1;
 
 package Hetzner::Robot::Failover;
-use base "Hetzner::Robot::Item";
+use base "Hetzner::Robot::Item::Enumerable";
 
-sub instances {
-    my ($this, $robot) = @_;
-    my $class = ref($this) || $this;
-    my $l = $robot->req("GET", "/".$class->__section);
-    return map { $class->new($robot, $_->{$class->__section}{ip}) } @$l;
-}
+sub __idkey { return "ip"; }
 
 sub address {
     my ($self) = @_;
@@ -239,7 +254,9 @@ sub disable {
 1;
 
 package Hetzner::Robot::Reset;
-use base "Hetzner::Robot::Item";
+use base "Hetzner::Robot::Item::Enumerable";
+
+sub __idkey { return "server_ip"; }
 
 sub available_methods {
     my ($self) = @_;
@@ -264,14 +281,9 @@ sub execute {
 
 
 package Hetzner::Robot::Server;
-use base "Hetzner::Robot::Item";
+use base "Hetzner::Robot::Item::Enumerable";
 
-sub instances {
-    my ($this, $robot) = @_;
-    my $class = ref($this) || $this;
-    my $l = $robot->req("GET", "/server");
-    return map { $class->new($robot, $_->{server}{server_ip}) } @$l;
-}
+sub __idkey { return "server_ip"; }
 
 sub address {
     my ($self) = @_;
@@ -306,14 +318,9 @@ sub networks {
 1;
 
 package Hetzner::Robot::IP;
-use base "Hetzner::Robot::Item";
+use base "Hetzner::Robot::Item::Enumerable";
 
-sub instances {
-    my ($this, $robot) = @_;
-    my $class = ref($this) || $this;
-    my $l = $robot->req("GET", "/".$class->__section);
-    return map { $class->new($robot, $_->{$class->__root}{ip}) } @$l;
-}
+sub __idkey { return "ip"; }
 
 sub address {
     my ($self) = @_;
