@@ -22,17 +22,7 @@ sub new {
     my $self = { user => $user, pass => $password };
     $self->{ua} = new LWP::UserAgent();
     $self->{ua}->env_proxy;
-    # unset error handler by default
-    $self->{onerror} = undef;
     bless $self, $class;
-}
-
-sub error_handler {
-    my ($self, $handler) = @_;
-    if (exists $_[1]) {
-        $self->{onerror} = $handler;
-    }
-    return $self->{onerror};
 }
 
 sub req {
@@ -52,9 +42,8 @@ sub req {
             return 1;
         }
     } else {
-        # something bad happened, call the error handler
-        $self->__on_error($url, $res);
-        return undef;
+        # something bad happened, throw an exception
+        die Hetzner::Robot::Exception->new("Unable to access ".$url.": ".$res->status_line);
     }
 }
 
@@ -68,14 +57,19 @@ sub servers {
     return Hetzner::Robot::Server->enumerate($self);
 }
 
-sub __on_error {
-    my ($self, $url, $res) = @_;
-    if (defined $self->error_handler) {
-        &{ $self->error_handler }($self, $url, $res);
-    } else {
-        # no custom error handler? Let's die!
-        die "Hetzner::Robot communication error: ".$res->code.": ".$res->message." (".$url.")\n";
-    }
+1;
+
+package Hetzner::Robot::Exception;
+use overload '""' => \&msg;
+
+sub new {
+    my ($this, $msg) = @_;
+    my $cls = ref($this) || $this;
+    bless {msg=>$msg}, $cls;
+}
+
+sub msg {
+    return shift->{msg};
 }
 
 1;
@@ -156,7 +150,7 @@ sub enumerate {
 sub __idkey {
     my ($this) = @_;
     my $class = ref($this) || $this;
-    die "No ID key defined for class $class";
+    die "Method __idkey has to be overridden by $class";
 }
 
 1;
@@ -626,8 +620,11 @@ sub run {
     my $robot = new Hetzner::Robot($user, $pass);
     
     if (exists $modes{lc $mode}) {
-        no strict 'refs';
-        &{"Hetzner::Robot::".$modes{$mode}."::main::run"}($robot);
+        eval {
+            no strict 'refs';
+            &{"Hetzner::Robot::".$modes{$mode}."::main::run"}($robot);
+        };
+        die (ref($@) ? $@->msg."\n" : $@) if $@;
     } else {
         abort "Unknown mode '$mode'";
     }
