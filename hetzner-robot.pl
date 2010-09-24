@@ -185,6 +185,20 @@ sub address {
     return $self->key;
 }
 
+# overload __info method
+sub __info {
+    my ($self) = @_;
+    my $res = { ip => $self->address, ptr => undef };
+    eval {
+        # try to retrieve the real results
+        $res = $self->SUPER::__info(@_);
+    };
+    # in case of an exception, the RDNS entry
+    # probably has not been created yet, so we
+    # return an empty "dummy" result
+    return $res;
+}
+
 sub ptr {
     my ($self, $val) = @_;
     if (defined $val) {
