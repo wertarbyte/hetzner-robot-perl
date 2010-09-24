@@ -12,6 +12,7 @@ package Hetzner::Robot;
 use LWP::UserAgent;
 use JSON;
 use HTTP::Request;
+use HTTP::Status qw(:constants);
 use URI::Escape;
 
 our $BASEURL = "https://robot-ws.your-server.de";
@@ -43,7 +44,14 @@ sub req {
         }
     } else {
         # something bad happened, throw an exception
-        die Hetzner::Robot::Exception->new("Unable to access ".$url.": ".$res->status_line);
+        if ($res->code == HTTP_UNAUTHORIZED) {
+            die Hetzner::Robot::AuthException->new();
+        }
+        if ($res->code == HTTP_NOT_FOUND) {
+            die Hetzner::Robot::NotFoundException->new($url);
+        }
+        # what else might try to ruin our day?
+        die Hetzner::Robot::Exception->new("Unable to access ".$url.": [".$res->code."]".$res->status_line);
     }
 }
 
@@ -70,6 +78,35 @@ sub new {
 
 sub msg {
     return shift->{msg};
+}
+
+1;
+
+package Hetzner::Robot::AuthException;
+use base "Hetzner::Robot::Exception";
+
+sub new {
+    my ($this) = @_;
+    my $cls = ref($this) || $this;
+    return $cls->SUPER::new("Authentication failed");
+}
+
+1;
+
+package Hetzner::Robot::NotFoundException;
+use base "Hetzner::Robot::Exception";
+
+sub new {
+    my ($this, $doc) = @_;
+    my $cls = ref($this) || $this;
+    my $self = $cls->SUPER::new("Ressource not found");
+    $self->{doc} = $doc;
+    return $self;
+}
+
+sub msg {
+    my $self = shift;
+    return $self->SUPER::msg.": ".$self->{doc};
 }
 
 1;
@@ -193,9 +230,13 @@ sub __info {
         # try to retrieve the real results
         $res = $self->SUPER::__info(@_);
     };
-    # in case of an exception, the RDNS entry
-    # probably has not been created yet, so we
-    # return an empty "dummy" result
+    if ($@ && ref($@) ne "Hetzner::Robot::NotFoundException") {
+        # in case of this exception, the RDNS entry
+        # probably has not been created yet, so we
+        # return an empty "dummy" result;
+        # otherwise, just re-die the exception
+        die $@
+    }
     return $res;
 }
 
