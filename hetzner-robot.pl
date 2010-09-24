@@ -466,37 +466,22 @@ sub run {
     my ($addr, $name);
 
     my $batch = 0;
+    my $all = 0;
 
     GetOptions (
         'get|g' => \$get,
+        'all!' => \$all,
         'set|s' => \$set,
         'delete|del|d' => \$del,
         'hostname|name|n=s' => \$name,
         'address|addr|a=s' => \$addr,
-        'batch' => \$batch
+        'batch!' => \$batch
     ) || Hetzner::Robot::main::abort();
     # check command line
     Hetzner::Robot::main::abort("No operation specified!") unless ($get ^ $set ^ $del ^ $batch);
-    unless ($batch) {
-        Hetzner::Robot::main::abort("No address specified!") if (($get||$set||$del) && !defined $addr);
+    unless ($batch || ($get && $all)) {
+        Hetzner::Robot::main::abort("No address specified!") if (($get||$set||$del) && (!defined $addr));
         Hetzner::Robot::main::abort("No hostname specified!") if ($set && !defined $name);
-    }
-
-    sub process {
-        my ($addr, $name) = @_;
-        my $rdns = new Hetzner::Robot::RDNS($robot, $addr);
-
-        if ($get || $set) {
-            if ($set) {
-                print STDERR "Setting $addr to $name...\n";
-                $rdns->ptr($name);
-            }
-            print $rdns->address, "\t", $rdns->ptr, "\n";
-        }
-        if ($del) {
-            print STDERR "Removing RDNS entry for $addr...\n";
-            $rdns->del;
-        }
     }
 
     if ($batch) {
@@ -514,9 +499,24 @@ sub run {
             }
             print $i->address, "\t", $i->ptr, "\n";
         }
+    } elsif ($get && $all) {
+        # dump all host entries
+        print $_->address."\t".$_->ptr."\n" for Hetzner::Robot::RDNS->enumerate($robot);
     } else {
         # handle a single change
-        process($addr, $name);
+        my $rdns = new Hetzner::Robot::RDNS($robot, $addr);
+
+        if ($get || $set) {
+            if ($set) {
+                print STDERR "Setting $addr to $name...\n";
+                $rdns->ptr($name);
+            }
+            print $rdns->address, "\t", $rdns->ptr, "\n";
+        }
+        if ($del) {
+            print STDERR "Removing RDNS entry for $addr...\n";
+            $rdns->del;
+        }
     }
 }
 
