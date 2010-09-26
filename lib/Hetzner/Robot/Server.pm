@@ -39,4 +39,10 @@ sub networks {
     return map { Hetzner::Robot::Subnet->new($self->robot, $_->{ip}) } @{$self->__info()->{subnet}};
 }
 
+sub product { return shift->__info()->{product}; }
+sub datacenter { return shift->__info()->{dc}; }
+sub paid_until { return shift->__info()->{paid_until}; }
+sub throtteled { return shift->__info()->{throtteled}; }
+sub included_traffic { return shift->__info()->{traffic}; }
+
 1;
