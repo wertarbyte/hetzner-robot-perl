@@ -1,5 +1,25 @@
 package Hetzner::Robot;
 use strict;
+
+=head1 NAME
+
+Hetzner::Robot - Access the webservice of the Hetzner Robot
+
+=head1 SYNOPSIS
+
+    use Hetzner::Robot;
+    my $robot = new Hetzner::Robot("user", "password");
+    print $_->address, "\n" for $robot->servers;
+
+=head1 DESCRIPTION
+
+C<Hetzner::Robot> encapsulates the access credentials to the Hetzner
+webservice and provides methods to communicate with it. In case of
+faulty credentials or invalid requests, the object may generate
+a variety of exceptions.
+
+=cut
+
 use Hetzner::Robot::Server;
 use Hetzner::Robot::Exception;
 use Hetzner::Robot::AuthException;
@@ -12,6 +32,16 @@ use HTTP::Status qw(:constants);
 use URI::Escape;
 
 our $BASEURL = "https://robot-ws.your-server.de";
+
+=head2 METHODS
+
+=over 4
+
+=item Hetzner::Robot->new( $username, $password )
+
+Returns a new object holding the supplied credentials.
+
+=cut
 
 sub new {
     my ($this, $user, $password) = @_;
@@ -51,10 +81,23 @@ sub req {
     }
 }
 
+=item $robot->server( $addr )
+
+Returns a C<Hetzner::Robot::Server> object representing the server
+with the supplied main address
+
+=cut
+
 sub server {
     my ($self, $addr) = @_;
     return Hetzner::Robot::Server->new($self, $addr);
 }
+
+=item $robot->servers
+
+Returns a list of all server objects known to the robot account.
+
+=cut
 
 sub servers {
     my ($self) = @_;
@@ -62,3 +105,12 @@ sub servers {
 }
 
 1;
+
+=back
+
+=head1 SEE ALSO
+
+L<Hetzner::Robot::Server>,
+L<Hetzner::Robot::Exception>,
+L<Hetzner::Robot::NotFoundException>,
+L<Hetzner::Robot::AuthException>
