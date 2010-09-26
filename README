@@ -58,8 +58,8 @@ use Hetzner::Robot;
 
 my $robot = new Hetzner::Robot("username", "password");
 my $serverA = $robot->server("1.2.3.4");
-# enumerate networks assigned to server
-for my $n ($serverA->networks) {
+# enumerate subnets assigned to server
+for my $n ($serverA->subnets) {
     print $n->address."/".$n->netmask, "\n";
 }
 

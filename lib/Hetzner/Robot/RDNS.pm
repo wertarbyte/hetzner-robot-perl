@@ -60,7 +60,7 @@ sub enumerate {
     my @servers = $robot->servers;
     my @addr = map {$_->address} map {$_->addresses} @servers;
     # expand networks to lists of IP addresses
-    for my $n (map {$_->networks} @servers) {
+    for my $n (map {$_->subnets} @servers) {
         my $ip = new Net::IP($n->address."/".$n->netmask);
         # we do not enumerate subnets with more than 1024 addresses (IPv6) for
         # obvious reasons; let's hope that Hetzner implements a better way to access

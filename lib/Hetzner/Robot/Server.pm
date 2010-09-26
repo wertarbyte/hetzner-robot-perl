@@ -78,7 +78,7 @@ sub rescue {
 }
 
 =item $server->addresses
-=item $server->networks
+=item $server->subnets
 
 Returns a list of IP addresses (L<Hetzner::Robot::IP>) or subnets
 (L<Hetzner::Robot::Subnet>) assigned to the server.
@@ -90,7 +90,7 @@ sub addresses {
     return map { Hetzner::Robot::IP->new($self->robot, $_) } @{$self->__info()->{ip}};
 }
 
-sub networks {
+sub subnets {
     my ($self) = @_;
     return map { Hetzner::Robot::Subnet->new($self->robot, $_->{ip}) } @{$self->__info()->{subnet}};
 }
