@@ -54,7 +54,7 @@ hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
 
 #!/usr/bin/perl
 # load module
-require "hetzner-rdns.pl";
+use Hetzner::Robot;
 
 my $robot = new Hetzner::Robot("username", "password");
 my $serverA = $robot->server("1.2.3.4");

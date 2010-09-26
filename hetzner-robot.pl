@@ -271,8 +271,4 @@ sub run {
 1;
 
 package default;
-# Are we "required" or called as a stand-alone program?
-if( ! (caller(0))[7]) {
-    Hetzner::Robot::main::run();
-}
-1;
+Hetzner::Robot::main::run();

@@ -12,7 +12,8 @@ my $ROBOT_PASSWORD = $ENV{ROBOT_PASSWORD};
 delete $ENV{ROBOT_USER};
 delete $ENV{ROBOT_PASSWORD};
 
-require "hetzner-robot.pl";
+use Hetzner::Robot;
+use Hetzner::Robot::RDNS;
 
 my $robot = Hetzner::Robot->new($ROBOT_NAME, $ROBOT_PASSWORD);
 
