@@ -58,4 +58,22 @@ sub __conf {
     return $self->req("POST", $self->__url, \%vars)->{$self->__root};
 }
 
+sub is_valid {
+    my ($self) = @_;
+    eval {
+        $self->__info();
+    };
+    if ($@) { # Exception!
+        if(ref($@) eq "Hetzner::Robot::NotFoundException") {
+            # the item has not been found, so we assume
+            # the key is invalid
+            return 0;
+        }
+        # any other exception we just pass on
+        die $@;
+    }
+    # No exception? Nice, our object looks valid
+    return 1;
+}
+
 1;
