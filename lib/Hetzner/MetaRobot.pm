@@ -52,7 +52,7 @@ sub server {
         return $s if $s->is_valid;
     }
     # Fallback
-    return new Hetzner::Server($self, $addr);
+    return new Hetzner::Robot::Server($self, $addr);
 }
 
 sub servers {
