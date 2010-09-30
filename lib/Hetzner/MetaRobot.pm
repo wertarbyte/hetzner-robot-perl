@@ -4,16 +4,25 @@ use strict;
 use Hetzner::Robot;
 
 sub new {
-    my ($this) = @_;
+    my ($this, $user, $password) = @_;
     my $cls = ref($this) || $this;
     my $self = { robots => [] };
-    bless $self, $cls;
+    my $me = bless $self, $cls;
+
+    if ($user) {
+        # initialize first sub-robot
+        $me->add_credentials( $user, $password );
+    }
+
+    return $me;
 }
 
 sub add_credentials {
     my ($self, $user, $password) = @_;
     my $r = new Hetzner::Robot($user, $password);
     push @{$self->{robots}}, $r;
+    # return $self so the command can be chained
+    return $self;
 }
 
 sub req {
