@@ -52,11 +52,11 @@ Returns a list of all available operating systems or architectures.
 =cut
 
 sub available_os {
-    return @{ $_[0]->__info->{os} };
+    return $_[0]->__aslist( $_[0]->__info->{os} );
 }
 
 sub available_arch {
-    return @{ $_[0]->__info->{arch} };
+    return $_[0]->__aslist( $_[0]->__info->{arch} );
 }
 
 =item $rescue->enable( $os, $arch )

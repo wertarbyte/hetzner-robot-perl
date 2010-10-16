@@ -65,15 +65,15 @@ Returns a list of all available distributions, architectures or languages.
 =cut
 
 sub available_dist {
-    return @{ $_[0]->__info->{dist} };
+    return $_[0]->__aslist( $_[0]->__info->{dist} );
 }
 
 sub available_arch {
-    return @{ $_[0]->__info->{arch} };
+    return $_[0]->__aslist( $_[0]->__info->{arch} );
 }
 
 sub available_lang {
-    return @{ $_[0]->__info->{lang} };
+    return $_[0]->__aslist( $_[0]->__info->{lang} );
 }
 
 =item $plesk->enable( $dist, $arch, $lang, $hostname )

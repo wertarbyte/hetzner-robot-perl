@@ -18,4 +18,14 @@ sub disable {
     my ($self) = @_;
     return $self->req("DELETE", $self->__url);
 }
+
+sub __aslist {
+	my ($self, $ref) = @_;
+	if ($ref) {
+		return @$ref;
+	} else {
+		return ();
+	}
+}
+
 1;
