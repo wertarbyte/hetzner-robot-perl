@@ -1,5 +1,5 @@
 package Hetzner::Robot::Boot::Rescue;
-use base "Hetzner::Robot::Item";
+use base "Hetzner::Robot::Boot";
 use strict;
 
 =head1 NAME
@@ -27,21 +27,9 @@ Returns the rescue system handle for the specified server address.
 
 Returns whether the rescue system is activated.
 
-=cut
-
-sub active {
-    return ( $_[0]->__info->{active} ? 1 : 0 );
-}
-
 =item $rescue->password
 
 Returns the password generated for the activatede rescue system.
-
-=cut
-
-sub password {
-    return $_[0]->__info->{password};
-}
 
 =item $rescue->os
 
@@ -53,10 +41,6 @@ Returns the set operating system or architecture.
 
 sub os {
     return $_[0]->__info->{os};
-}
-
-sub arch {
-    return $_[0]->__info->{arch};
 }
 
 =item $rescue->available_os
@@ -90,12 +74,6 @@ sub enable {
 
 Disable the rescue system.
 
-=cut
-
-sub disable {
-    my ($self) = @_;
-    return $self->req("DELETE", $self->__url);
-}
-1;
-
 =back
+=cut
+1;
