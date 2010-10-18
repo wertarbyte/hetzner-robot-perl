@@ -22,10 +22,6 @@ Hetzner::Robot::RDNS - Class representing RDNS entries
 This class encapsulates access to a rdns object as provided by the
 webservice.
 
-=cut
-
-use Net::IP;
-
 =head1 METHODS
 
 =over
@@ -40,39 +36,11 @@ and the IP address.
 Returns a list of all reverse DNS entries known to the L<Hetzner::Robot>
 account.
 
-Currently, enumerating all RDNS entries works by generating a list of
-all known IP addresses and Subnet associated with the robot account
-and querying the robot for each of them. For obvious reasons, this
-does not scale well with big networks. Because of this, networks with
-1024 nodes or more are not expanded and included into this
-enumeration, which basically excludes IPv6 entries from appearing.
-
 =item $entry->address
 
 Returns the IP address of the entry.
 
 =cut
-
-sub enumerate {
-    my ($this, $robot) = @_;
-    my $cls = ref($this) || $this;
-    # get a list of all addresses known to the Robot
-    my @servers = $robot->servers;
-    my @addr = map {$_->address} map {$_->addresses} @servers;
-    # expand networks to lists of IP addresses
-    for my $n (map {$_->subnets} @servers) {
-        my $ip = new Net::IP($n->address."/".$n->netmask);
-        # we do not enumerate subnets with more than 1024 addresses (IPv6) for
-        # obvious reasons; let's hope that Hetzner implements a better way to access
-        # rdns entries as a whole
-        if ($ip->size > 1024) {
-            #print STDERR "Not expanding subnet ".$ip->short." containing ".$ip->size." addresses.\n";
-        } else {
-            do { push @addr, $ip->ip; } while (++$ip);
-        }
-    }
-    map {$cls->new($robot, $_)} @addr;
-}
 
 sub address {
     my ($self) = @_;
@@ -96,6 +64,8 @@ sub __info {
     }
     return $res;
 }
+
+sub __idkey { return "ip"; }
 
 =item $entry->ptr
 
