@@ -246,12 +246,18 @@ sub run {
     my $p = new Getopt::Long::Parser;
     $p->configure("pass_through");
 
-    my ($user, $pass, $mode);
+    my ($user, $pass, $readpw, $mode);
     $p->getoptions (
         'username|user|u=s' => \$user,
         'password|pass|p=s' => \$pass,
+        'readpw' => \$readpw,
         'mode=s' => \$mode
     ) || abort;
+    if ($readpw) {
+        print STDERR "Reading password from STDIN: ";
+        $pass = <STDIN>;
+        print STDERR "Thank you.\n";
+    }
     abort "No user credentials specified!" unless (defined $user && defined $pass);
     abort "No valid operation mode (".join("/", keys %modes).") specified!" unless defined $mode or defined $modes{lc $mode};
 

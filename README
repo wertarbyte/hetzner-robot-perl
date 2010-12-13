@@ -48,7 +48,9 @@ hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
 hetzner-robot.pl --user "USERNAME" --password "PASSWORD" \
     --mode failover --address 5.6.7.8 --status
 
+# to hide the password from the command line, it can be read from stdin:
 
+echo "passphrase" | hetzner-robot.pl --user "USERNAME" --readpw ...
 
 == Examples for use in scripts ==
 
