@@ -99,7 +99,7 @@ sub run {
     my $fo = new Hetzner::Robot::Failover($robot, $addr);
     if ($target) {
         my $t = $robot->server($target);
-        $fo->target($fo);
+        $fo->target($t);
     }
     if ($status) {
         print "address:\t".$fo->address."\n";
