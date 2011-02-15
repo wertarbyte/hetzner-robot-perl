@@ -55,7 +55,9 @@ sub address {
 }
 
 =item $server->wol
+
 =item $server->reset
+
 =item $server->rescue
 
 Returns the WOL/Reset/Rescue controller object assigned to the server.
@@ -78,6 +80,7 @@ sub rescue {
 }
 
 =item $server->addresses
+
 =item $server->subnets
 
 Returns a list of IP addresses (L<Hetzner::Robot::IP>) or subnets
