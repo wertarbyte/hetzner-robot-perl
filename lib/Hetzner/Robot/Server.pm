@@ -54,6 +54,22 @@ sub address {
     return $self->key;
 }
 
+=item $server->name
+
+=item $server->name("foo")
+
+Returns or sets the custom server nickname.
+
+=cut
+
+sub name {
+    my ($self, $nick) = @_;
+    if (defined $nick) {
+        $self->__conf( "server_name" => $nick );
+    }
+    return $self->__info->{server_name};
+}
+
 =item $server->wol
 
 =item $server->reset
